@@ -786,7 +786,6 @@
       state.scanErrors = {};
       state.originText = canonicalText();
       state.rawParseError = null;
-      setUrlHash(sha256);
       renderForm();
       updateAll();
       setStatus("Found existing metadata for this file in the Quaddicted API and loaded it.");
@@ -807,7 +806,6 @@
     state.origin = { type: "new", expectedSha256: sha256, filename: file.name };
     state.originText = canonicalText();
     state.rawParseError = null;
-    setUrlHash(sha256);
     renderForm();
     updateAll();
     var kindMsg = scan.kind ? scan.kind : "not an archive (no files map added)";
