@@ -1,108 +1,182 @@
 # quaddicted-data web editor
 
-A single-page, fully client-side web app to **create and edit JSON package files** for
-[`Quaddicted/quaddicted-data`](https://github.com/Quaddicted/quaddicted-data) — the data behind
-[quaddicted.com](https://www.quaddicted.com). See the wiki pages "The JSON format", "Tags" and
-"WIP: Installation-extraction-instructions" for the format this editor targets.
+A single-page, no-backend web app to **create and edit JSON package files** for
+[Quaddicted/quaddicted-data](https://github.com/Quaddicted/quaddicted-data) —
+the data behind [quaddicted.com](https://www.quaddicted.com/).
 
-## Run it
+Everything runs locally in your browser:
 
-No server-side state. The app is bundled with esbuild; ZIP handling uses
-[node-stream-zip](https://www.npmjs.com/package/node-stream-zip), bundled for the browser
-with small Node-builtin shims (`js/shims/`):
+- **No server-side state.
 
-```sh
-npm install
-npm run build            # writes js/bundle.js (gitignored)
-python3 -m http.server   # then open http://localhost:8000/
+**Canonical deployment:** <https://spirit.enjoys.it/fart2/> — this branch
+(`dc0baf2` and later) is the source of truth; the deployed site is built from
+it, and all ongoing development continues here.** This is a static page; there is no backend.
+- The current draft and your optional GitHub PAT are stored in `localStorage` only.
+- Archives you pick are hashed and scanned in the browser; nothing is uploaded.
+- All data is rendered via `textContent` only — no `innerHTML` anywhere.
+- CSP meta restricts `connect-src` to `api.github.com`, `raw.githubusercontent.com`
+  and `www.quaddicted.com` (the read-only Quaddicted API v1). CodeMirror 6
+  injects its stylesheet as a runtime `<style>` element; app.js stamps a CSP
+  nonce onto every `<style>` it creates, so `style-src` needs neither
+  `'unsafe-inline'` nor a hash. Script sources remain strictly `'self'`.
+
+The CodeMirror 6 bundle in `js/vendor/codemirror6.bundle.js` was built with
+esbuild from `codemirror` (basicSetup, EditorView) and `@codemirror/lang-json`:
+`esbuild cm6-entry.mjs --bundle --format=iife --global-name=QeCM --minify`.
+
+## Usage
+
+Serve the directory statically over https:// or localhost and open `index.html`:
+
+```
+python3 -m http.server
 ```
 
-`index.html` loads the single generated `js/bundle.js`. Drafts and the optional GitHub
-token live **only in `localStorage`** of your browser.
+Hashing uses the platform's Web Crypto API (`crypto.subtle`), which requires a
+secure context (https:// or localhost); the page is not expected to work when
+opened directly via `file://`.
 
-## What it does
+The layout is intrinsically responsive: the two panes wrap into a single
+column when the screen is too narrow for them side by side (no media query), and the
+whole UI uses quaddicted.com's color palette (page `#0d0b05`, content
+`#201b0e`, panels `#363020`/`#443e2c`, links `#CCCC99`) with WCAG-checked
+contrast.
 
-- **New from file**: pick a `.zip`/`.pak` (or any file). The file is hashed (SHA-256 via the
-  Web Crypto API, `crypto.subtle.digest`, with a pure-JS fallback), scanned (ZIP via
-  `node-stream-zip`, PAK via a small built-in parser, nested archives recursed up to depth 4 with
-  entry/size budgets), and turned into a package skeleton:
-  `{bytes, files?, json_version: "2025.09.27", sha256, tags: [filename=...], urls: [by-sha256 URL]}`.
-  `json_version` is prefilled only for brand-new packages and is never auto-changed when editing.
-- **Open by sha256**: fetches `json/by-sha256/<xx>/<sha>.json` from the upstream repo
-  (`raw.githubusercontent.com`) and loads it for editing.
-- **Open JSON file / paste JSON**: load an existing package file.
-- **quaddicted API metadata**: when a file is loaded (and via the "Reload metadata from quaddicted API"
-  button), the editor queries the [Quaddicted API v1](https://discuss.quaddicted.com/t/the-quaddicted-api-v1/8136)
-  (`https://www.quaddicted.com/api/v1/?q=+sha256:<sha>&fl=sha256,tags,urls,notes,bytes,description,install` —
-  one or no result) and fills in any fields the package is missing (tags incl. title/authors/game,
-  urls, description, notes, install, bytes) — existing values are never overwritten. Requires CORS
-  enabled on quaddicted.com for the API; there is no fallback source.
-- **Collapsible lists/mappings**: the tags, urls, files tree (incl. nested archives), extractmapping
-  and notes lists are `<details>` blocks the user can collapse/expand. Empty `install.extract`,
-  `install.extractmapping` and `install` are pruned automatically, so no empty install section is
-  ever written to the JSON.
-- **Form editor** with sections for package fields, tags (with known-key datalist, quick-add and
-  per-row parse hints), URLs (incl. one-click by-sha256 / filebase URLs), the recursive `files`
-  tree (bytes/sha256/timestamp per entry, add file/dir, delete, scan an uploaded archive into it),
-  `install.extractmapping` (+ legacy `install.extract`) and notes. A raw JSON textarea stays in
-  two-way sync with the form (400 ms debounce).
-- **Live validation** mirroring the CI (`Quaddicted/tools` `validate_dir_of_jsons.py`): required
-  `bytes`/`sha256`, unknown top-level keys, URL shape (urlparse-style), tag structure and per-key
-  value validators, path↔sha256 match, `files` tree sanity, legacy warnings, tag cardinality and
-  sorting conventions. Export (download `<sha256>.json`, copy) and the PR button are enabled only
-  when there are no errors and `sha256` is well-formed.
-- **Create a pull request** against `Quaddicted/quaddicted-data` with a GitHub PAT: forks your
-  account if needed, creates a branch, commits the canonical JSON, and opens the PR (or reuses an
-  existing open one). Classic PAT with `repo` scope, or fine-grained PAT with Contents:write and
-  Pull requests:write. The token is stored only in `localStorage` and can be forgotten with one click.
+### Flows
+
+- **New package from file**: pick the archived file (`.zip`, `.pak`, anything).
+  It is SHA-256-hashed (Web Crypto) with a progress display while reading and
+  scanned (zip/pak, including **nested zip and pak archives**). The Quaddicted
+  API is **always checked** for existing metadata for the file's sha256 — if
+  found, that metadata is loaded for editing; otherwise a starter package is
+  built with `json_version` prefilled, a `filename=` tag and the by-sha256 URL.
+  A file with zip/pak magic bytes that fails to scan is treated as **corrupt**:
+  nothing is loaded, the editor resets, and the status line explains why.
+- **Open by sha256**: fetches existing metadata from the
+  [Quaddicted API v1](https://discuss.quaddicted.com/t/the-quaddicted-api-v1/8136)
+  (`https://www.quaddicted.com/api/v1/`). A **Reload metadata from API** button
+  re-fetches the metadata for the currently loaded sha256. A `#sha256=<sha256>`
+  URL hash parameter auto-loads the metadata on page open (the hash is kept in
+  sync with the loaded package, so URLs are shareable).
+- **Open JSON file / Paste JSON**: load an existing package JSON.
+- **Clear / reset everything**: returns the site to a pristine state (package,
+  form, raw view, draft, paste panel and PR log; a saved PAT is kept).
+- **Form editor**: Package (bytes and sha256 shown read-only — they come from
+  the loaded file; description with live Markdown preview; json_version is not
+  shown in the form, use the JSON editor for it), Tags (rows with autocompletion
+  datalist, an "Add tag" button appending a normal blank tag field, per-row
+  hints below the input, and a "Copy tags from sha256"
+  button that pulls another package's tags from the API), URLs (incl. one-click
+  by-sha256 URL), Files (read-only collapsible tree view with metadata under
+  each entry; the map is generated by "scan uploaded archive"), Install
+  (extractmapping rows + legacy extract), Notes (a list of note entries,
+  matching the repo's `notes` array format). Tags and URLs are removed via a
+  small X in front of each row. A **Fetch common tag suggestions from the API**
+  button downloads the `tags` of all packages once (paged `q=*&fl=sha256,tags`),
+  counts key=value pair frequencies in the browser, and caches the **500 most
+  common tags** in `localStorage` as one flat list. Every tag field offers
+  matching tags (plus the static tagdata examples) as tappable suggestion
+  buttons below the input while you type — most common first, with package
+  counts shown. This works on phones too, where `<datalist>` is unreliable.
+  Escape hides the suggestions. The static tag hints from
+  tagdata.js always remain as a fallback; the fetch is user-initiated.
+  current sha256 in a new tab at the Quaddicted API, in the quaddicted-data
+  GitHub repo, and in the Quaddicted database (`/db/v2/canonical`).
+- **Raw JSON editor**: a [CodeMirror 6](https://codemirror.net/) editor with
+  JSON syntax highlighting, line numbers and **folding while you edit** —
+  collapse/expand mappings and lists via the gutter markers at any time, with
+  no mode or view switching. Two-way synced with the form (debounced).
+- **Validation**: live port of the CI validators
+  ([Quaddicted/tools](https://github.com/Quaddicted/tools)
+  `validate_dir_of_jsons.py`): errors (red) vs warnings (yellow), including the
+  filename-vs-`sha256` path check. `json_version` is **never auto-changed**; it
+  is prefilled only for brand-new packages.
+- **Export**: download as `<sha256>.json`, copy to clipboard, or create a PR.
+
+### Submitting packages
+
+**Option A — Submit via Quaddicted (no PAT):** the "Submit via Quaddicted"
+panel POSTs `{title, username, packages: [<the package>]}` to
+`quaddicted.com/db/json_upload`, which opens the pull request against
+`Quaddicted/quaddicted-data` for you. The PR title is prefilled from the
+package (title=/filename= tag + sha prefix) and stays editable until you
+touch it; the username (commit footer, defaults to "Anonymous") is remembered
+in `localStorage`. Note that you grant Quaddicted.com/Spirit all rights to
+the submitted JSON data.
+
+**Option B — GitHub PR with your own PAT:**
+
+Enter a GitHub PAT (classic PAT with `repo` scope, or a fine-grained PAT with
+Contents:write and Pull requests:write on all your repositories). The app then:
+
+1. ensures you have a fork of `Quaddicted/quaddicted-data` (creating one if needed),
+2. syncs the fork with upstream (best effort),
+3. pushes a branch `quaddicted-web-editor/<sha12>-<ts>` with the canonical JSON at
+   `json/by-sha256/<xx>/<sha256>.json`,
+4. opens a pull request against `Quaddicted/quaddicted-data:main`
+   (`maintainer_can_modify: true`), with a log panel and result link.
+
+The PAT is only ever sent to `api.github.com`. "Save PAT" stores it in
+`localStorage`; "Forget PAT" removes it.
 
 ## Canonical JSON format
 
-Exactly Python `json.dump(obj, f, indent=1, sort_keys=True)` + a single trailing newline:
-1-space indent, keys sorted by Unicode code point, `ensure_ascii` escaping (lowercase `\uXXXX`,
-surrogate pairs for astral characters, short forms `\b \f \n \r \t`), object names always quoted.
-The top-level `tags` array is additionally sorted by code point (repo convention). The serializer is
-verified byte-for-byte against real `json.dump` in the tests.
+Output is byte-identical to Python's
 
-## Files
+```python
+json.dump(obj, f, indent=1, sort_keys=True, ensure_ascii=False)
+f.write("\n")
+```
+
+with the top-level `tags` array sorted alphabetically (repo convention). String
+escaping is plain `JSON.stringify` (non-ASCII stays raw UTF-8); key sorting
+uses JavaScript's default string order, which matches Python for all BMP
+characters. Astral-plane characters and exotic number edge cases are accepted
+as known 99%-case trade-offs — the CI validator only checks content, not
+formatting, so this passes validation regardless.
+Note: some existing files in quaddicted-data escape non-ASCII (`ensure_ascii=True`)
+and lack the final trailing newline; this editor writes raw UTF-8 plus the
+trailing newline, which may show as cosmetic diffs on such files.
+
+## Repository layout
 
 ```
-index.html        single page; CSP meta; loads the generated js/bundle.js
+index.html        single page (CSP meta, classic scripts in order)
 style.css
-js/sha256.js      SHA-256 via WebCrypto: getChecksumSha256(blob) = blob.arrayBuffer() + crypto.subtle.digest("SHA-256") + Array.from(...).map(h => h.toString(16).padStart(2,"0")).join(""); pure-JS class only as fallback when WebCrypto is unavailable
-js/serialize.js   python-exact canonical serializer; compareCodePoints; escapeString
-js/tagdata.js     known tags/keys metadata for the UI
-js/validate.js    port of the CI validators (Quaddicted/tools)
-js/scan.js        archive scanner: ZIP via node-stream-zip, PAK parser, magic sniff, nested archives, budgets
-js/github.js      PAT-based fork/branch/commit/PR flow against api.github.com
-js/app.js         UI: state, form<->raw sync, renderers, draft, export, PR panel
-js/browser-entry.js  esbuild entry point (js/bundle.js is the generated bundle, gitignored)
-js/shims/         browser shims for the Node builtins node-stream-zip uses (fs over in-memory bytes, zlib via pako, util, os)
-build.mjs         esbuild build script (`npm run build`)
-package.json      dependencies: node-stream-zip (+ pako/readable-stream/events/path-browserify/buffer for the browser bundle); devDependency: esbuild
-tests/            node test suite + python fixture generator; run: sh tests/run_all.sh
+js/serialize.js   python-exact canonical serializer (UMD)
+js/tagdata.js     known tags/keys metadata (UMD)
+js/validate.js    port of the CI validators (UMD)
+js/scan.js        zip/pak scanner incl. nested archives (UMD)
+js/github.js      GitHub API / PR creation (UMD)
+js/app.js         UI application (IIFE)
+js/vendor/pako_inflate.min.js   vendored inflate (pako 2.2.0, MIT/Zlib)
+js/vendor/codemirror6.bundle.js vendored CodeMirror 6 bundle (core + JSON language, MIT)
+tests/            node test suite + python fixture generator + run_all.sh
 ```
-
-All modules are UMD: browser globals (`window.Sha256`, `window.Serialize`, `window.TagData`,
-`window.Validate`, `window.Scan`, `window.Github`) and `module.exports` for the Node tests.
-
-Security notes: the CSP (`default-src 'self'`; `connect-src` limited to `raw.githubusercontent.com`,
-`api.github.com` and `www.quaddicted.com`) forbids inline scripts/styles; all data is rendered via
-`textContent` only, never `innerHTML`; links are only created for `github.com`/`quaddicted.com` URLs
-with `rel="noopener noreferrer"`.
 
 ## Tests
 
-Requires node ≥ 18, python3 and npm:
+Requires node >= 18 and python3:
 
-```sh
-sh tests/run_all.sh   # npm install + build + fixtures + all test files
+```
+sh tests/run_all.sh
 ```
 
-Covers NIST SHA-256 vectors + `sha256sum` parity, serializer byte-parity vs `python3 json.dump` on
-fixtures (unicode/astral/control chars, key-sort edge cases, numbers, tags), validator cases ported
-from `Quaddicted/tools` tests plus package-level checks, ZIP/PAK scanning vs Python-built fixtures
-(byte-for-byte), corrupt-input handling, the full new-from-file pipeline vs a Python-produced
-expected package, the GitHub PR helpers, a DOM-shim UI smoke test, a test that boots the actual
-esbuild bundle (js/bundle.js) and scans fixtures through the bundled node-stream-zip + shims
-byte-for-byte, and an ids/scripts consistency check between `app.js` and `index.html`.
+The suite regenerates deterministic fixtures (a zip with deflate/stored entries,
+an explicit directory entry, a nested zip and a nested pak) with
+`tests/make_fixtures.py`, then runs:
+
+1. `test_serialize.js` — serializer vs Python `json.dump` byte-for-byte;
+   round-trip identity.
+2. `test_validate.js` — cases ported from Quaddicted/tools' pytest suite plus
+   package-level checks (bytes/sha256, unknown keys, urls, path mismatch,
+   cardinality, files tree, extractmapping).
+3. `test_scan.js` — scan results vs Python-expected tree byte-for-byte.
+4. `test_github.js` — repo path layout, base64 UTF-8 vs Python, PR title/body,
+   full `createPullRequest` against a mocked fetch.
+5. `test_pipeline.js` — full "new from file" pipeline vs a Python-produced
+   expected package, byte-for-byte.
+6. `test_ui_smoke.js` — minimal DOM shim; boot, paste flow, raw sync, draft
+   saving, parse-error surfacing, fold lines.
+7. `test_ids.js` — every `$("id")` in app.js exists in index.html; all script
+   srcs exist; script order; no innerHTML.

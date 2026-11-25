@@ -1,127 +1,561 @@
+/*
+ * Quake (1996) inspired skin: dark metal panels with chunky 3D bevels,
+ * a gold-bevel title, and an amber console-style status bar.
+ * Accessibility rules kept throughout:
+ *  - body text #e2d6bd on #241c12 (contrast ~12:1)
+ *  - hints #b9a982 on #241c12 (~6:1)
+ *  - links get an underline; focus gets a thick gold outline
+ */
+
 :root {
-  color-scheme: dark;
-  --bg: #14161a;
-  --panel: #1c1f26;
-  --border: #333a45;
-  --fg: #e6e9ee;
-  --muted: #9aa4b2;
-  --accent: #5aa2ff;
-  --err: #ff6b6b;
-  --warn: #ffd166;
-  --ok: #6bd68a;
+  /* quaddicted.com colors (page #0d0b05, content #201b0e, links #CCCC99,
+     panels #363020 / #443e2c, text #ccc) plus gold accents for headings */
+  --q-bg: #0d0b05;
+  --q-panel: #201b0e;
+  --q-panel-2: #363020;
+  --q-inset: #120e09;
+  --q-text: #cccccc;
+  --q-text-bright: #f0ead6;
+  --q-hint: #cccc99;
+  --q-gold: #e0a72e;
+  --q-gold-bright: #ffc44d;
+  --q-link: #cccc99;
+  --q-link-hover: #ffffff;
+  --q-btn: #443e2c;
+  --q-btn-hover: #55503c;
+  --q-bevel-light: #6e5b3c;
+  --q-bevel-dark: #050402;
+  --q-danger: #f0a897;
+  --q-ok: #9bbf7a;
+  --q-warn: #e6c35c;
+  --q-error: #ff9a85;
 }
 
-* { box-sizing: border-box; }
+/* ------------------------------------------------------------- base */
+
+html,
+body {
+  overscroll-behavior: none;
+}
 
 body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--q-bg);
+  color: var(--q-text);
   margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: 0 0 2.8rem;
+  line-height: 1.45;
 }
 
-header, footer { padding: 12px 20px; }
-header { border-bottom: 1px solid var(--border); }
-h1 { font-size: 20px; margin: 8px 0 4px; }
-h2 { font-size: 15px; margin: 0 0 6px; }
-.tagline { color: var(--muted); margin: 0 0 10px; }
-a { color: var(--accent); }
-code { background: var(--panel); padding: 1px 4px; border-radius: 4px; }
-
-#toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-#status { color: var(--muted); }
-
-#paste-panel { margin-top: 10px; }
-#paste-text { width: 100%; font-family: ui-monospace, monospace; }
-#paste-panel div { margin-top: 6px; }
-
-#draft-banner {
-  margin-top: 10px;
-  padding: 6px 10px;
-  background: #3a3320;
-  border: 1px solid var(--warn);
-  border-radius: 6px;
-  display: inline-block;
+a {
+  color: var(--q-link);
+  text-decoration: underline;
 }
 
-button {
-  background: var(--panel);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 5px 10px;
-  cursor: pointer;
+a:hover {
+  color: var(--q-link-hover);
 }
-button:hover:not(:disabled) { border-color: var(--accent); }
-button:disabled { opacity: 0.45; cursor: not-allowed; }
-button.primary { background: var(--accent); color: #0b1220; border-color: var(--accent); }
 
-input[type="text"], input[type="password"], textarea, select {
-  background: var(--bg);
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font: inherit;
+/* everything keyboard-focusable gets a clearly visible gold outline */
+:focus-visible {
+  outline: 3px solid var(--q-gold-bright);
+  outline-offset: 2px;
 }
-textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+h1,
+h2 {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--q-gold);
+  /* gold-bevel letters like the Quake menu font (decorative shadow only) */
+  text-shadow:
+    1px 1px 0 #fff3cf,
+    2px 2px 0 #55401d,
+    3px 3px 2px #0a0806;
+}
+
+code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+/* The two panes intrinsically wrap: when the screen is too narrow for
+   34rem + 26rem side by side, the second pane drops below the first.
+   No media query needed - this cannot stay two narrow columns. */
+
+/* ------------------------------------------------------------- header */
+
+header {
+  margin: 0.4rem 0.9rem 0.6rem;
+}
+
+header h1 {
+  font-size: 1.9rem;
+  margin: 0.2rem 0;
+  text-transform: uppercase;
+}
+
+header p {
+  margin: 0.2rem 0;
+  color: var(--q-hint);
+}
+
+/* toolbar: a metal bar with chunky beveled buttons */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  background: var(--q-panel);
+  border: 2px solid;
+  border-color: var(--q-bevel-light) var(--q-bevel-dark) var(--q-bevel-dark) var(--q-bevel-light);
+  border-radius: 3px;
+  align-items: center;
+}
+
+.hidden-file {
+  display: none;
+}
+
+.hidden {
+  display: none;
+}
+
+/* ------------------------------------------------------------- panels */
+
+.panel {
+  margin: 0.6rem 0.9rem;
+  padding: 0.55rem 0.8rem;
+  background: var(--q-panel);
+  border: 2px solid;
+  border-color: var(--q-bevel-light) var(--q-bevel-dark) var(--q-bevel-dark) var(--q-bevel-light);
+  border-radius: 3px;
+}
+
+.panel[data-visible="false"] {
+  display: none;
+}
 
 main {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 45%);
-  gap: 16px;
-  padding: 16px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  padding: 0.3rem 0.9rem;
+  align-items: flex-start;
 }
-@media (max-width: 900px) { main { grid-template-columns: 1fr; } }
 
-#form-pane section, #side-pane > section, #side-pane > label {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 12px;
+#form-pane {
+  flex: 1.35 1 34rem;
+  min-width: 0;
+  box-sizing: border-box;
 }
-#side-pane > label { display: block; font-weight: 600; }
 
-.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
-.field > span { color: var(--muted); font-size: 12px; }
-.field input { width: 100%; }
+#side-pane {
+  flex: 1 1 26rem;
+  min-width: 0;
+  box-sizing: border-box;
+}
 
-.tag-row, .url-row, .map-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.pane {
+  background: var(--q-panel);
+  border: 2px solid;
+  border-color: var(--q-bevel-light) var(--q-bevel-dark) var(--q-bevel-dark) var(--q-bevel-light);
+  border-radius: 3px;
+  padding: 0.45rem 0.7rem;
+}
 
-details.collapsible { margin: 6px 0; }
-details.collapsible > summary { cursor: pointer; color: var(--muted); font-size: 12px; user-select: none; }
-details.collapsible > summary:hover { color: var(--accent); }
-.tag-row input, .url-row input, .map-row input { flex: 1; }
-.tag-hint { color: var(--muted); font-size: 12px; }
+.banner {
+  margin: 0.5rem 0.9rem;
+  padding: 0.45rem 0.7rem;
+  background: var(--q-panel-2);
+  border: 2px solid;
+  border-color: var(--q-bevel-dark) var(--q-bevel-light) var(--q-bevel-light) var(--q-bevel-dark);
+  /* inset bevel, the opposite of the raised panels */
+  border-radius: 3px;
+}
 
-.files-tree { font-family: ui-monospace, monospace; font-size: 13px; }
-.files-node { margin-left: 14px; border-left: 1px solid var(--border); padding-left: 8px; }
-.files-entry { margin: 4px 0; }
-.files-entry .entry-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.files-entry .entry-fields { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 4px 18px; }
-.files-entry .entry-fields label { color: var(--muted); font-size: 12px; display: flex; flex-direction: column; }
-.files-entry .entry-fields input { width: 200px; font-family: inherit; font-size: 12px; }
+.banner[data-visible="false"] {
+  display: none;
+}
 
-#validation ul { margin: 6px 0 0; padding-left: 18px; }
-#validation .err { color: var(--err); }
-#validation .warn { color: var(--warn); }
-#validation .pass { color: var(--ok); }
+.banner button {
+  margin-left: 0.6rem;
+}
 
-#raw { width: 100%; }
-#export-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
-#modified-badge { color: var(--warn); font-size: 12px; }
+.form-section,
+.side-section {
+  margin-bottom: 1rem;
+}
 
-#pr-panel input { width: 100%; margin-bottom: 6px; }
-#pr-log {
-  max-height: 220px;
-  overflow: auto;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px;
-  font-size: 12px;
+.form-section h2,
+.side-section h2 {
+  font-size: 1.05rem;
+  margin: 0.3rem 0 0.5rem;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------- controls */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin: 0.3rem 0;
+}
+
+.row label {
+  min-width: 6.5rem;
+  color: var(--q-hint);
+  font-size: 0.95rem;
+}
+
+.row input[type="text"],
+.row input[type="password"],
+.row input[type="number"],
+.row textarea,
+.panel textarea {
+  font: inherit;
+  color: var(--q-text-bright);
+  background: var(--q-inset);
+  border: 2px solid;
+  border-color: var(--q-bevel-dark) var(--q-bevel-light) var(--q-bevel-light) var(--q-bevel-dark);
+  border-radius: 2px;
+  padding: 0.3rem 0.45rem;
+  flex: 1 1 12rem;
+  min-width: 8rem;
+}
+
+.row input::placeholder,
+.row textarea::placeholder,
+.panel textarea::placeholder {
+  color: #8d7c5c;
+}
+
+button,
+.button-link {
+  display: inline-block;
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.28rem 0.65rem;
+  color: var(--q-text-bright);
+  background: var(--q-btn);
+  border: 2px solid;
+  border-color: var(--q-bevel-light) var(--q-bevel-dark) var(--q-bevel-dark) var(--q-bevel-light);
+  border-radius: 3px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* hover = the Quake menu "selected" state: brighter metal, glowing text */
+button:hover:not(:disabled),
+.button-link:hover {
+  background: var(--q-btn-hover);
+  color: #fff6d8;
+  text-shadow: 0 0 1px #ffe9a8;
+}
+
+button:active:not(:disabled) {
+  border-color: var(--q-bevel-dark) var(--q-bevel-light) var(--q-bevel-light) var(--q-bevel-dark);
+}
+
+button:disabled,
+.button-link.disabled {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
+.hint {
+  color: var(--q-hint);
+  font-size: 0.8rem;
+  margin: 0.2rem 0;
+}
+
+.readonly-value {
+  font-family: ui-monospace, monospace;
+  background: var(--q-inset);
+  color: var(--q-gold-bright);
+  padding: 0.15rem 0.4rem;
+  border: 1px solid var(--q-bevel-light);
+  border-radius: 3px;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------- markdown preview */
+
+.md-preview {
+  background: var(--q-inset);
+  border: 1px solid var(--q-bevel-light);
+  border-radius: 3px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.md-preview ul {
+  margin: 0.2rem 0;
+  padding-left: 1.2rem;
+}
+
+.md-preview code {
+  background: var(--q-panel-2);
+  padding: 0 0.2rem;
+  border-radius: 3px;
+}
+
+/* ------------------------------------------------------------- tags */
+
+.tag-row,
+.mapping-row {
+  margin: 0.25rem 0;
+}
+
+.tag-row {
+  display: block;
+}
+
+.tag-row .tag-hint {
+  font-size: 0.75rem;
+  color: var(--q-hint);
+  margin: 0.1rem 0 0.25rem 1.9rem;
+}
+
+.remove-x {
+  min-width: 1.4rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: var(--q-danger);
+}
+
+.tag-input-row input {
+  flex: 1 1 12rem;
+  min-width: 8rem;
+}
+
+/* tap-friendly tag autocomplete (datalist is unreliable on phones) */
+.suggest-box {
+  margin: 0.15rem 0 0.35rem 1.9rem;
+  background: var(--q-panel-2);
+  border: 1px solid var(--q-bevel-light);
+  border-radius: 3px;
+  padding: 0.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  max-width: 40rem;
+}
+
+.suggest-box.hidden {
+  display: none;
+}
+
+button.suggest-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--q-panel);
+  font-size: 0.9rem;
+}
+
+/* ------------------------------------------------------------- files tree */
+
+.files-tree {
+  font-size: 0.95rem;
+  margin: 0.25rem 0;
+}
+
+.tree-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0.1rem 0;
+}
+
+.tree-row .tree-name {
+  font-family: ui-monospace, monospace;
+  overflow-wrap: anywhere;
+}
+
+.tree-row .tree-name.dir {
+  font-weight: 600;
+  color: var(--q-gold-bright);
+}
+
+.tree-meta-row {
+  margin: 0 0 0.15rem 1.4rem;
+  font-size: 0.8rem;
+  color: var(--q-hint);
+  font-family: ui-monospace, monospace;
+  overflow-wrap: anywhere;
+}
+
+button.tree-toggle {
+  min-width: 1.4rem;
+  padding: 0 0.2rem;
+}
+
+.tree-toggle-spacer {
+  display: inline-block;
+  min-width: 1.4rem;
+  text-align: center;
+  color: var(--q-bevel-light);
+}
+
+.files-tree .nested {
+  margin-left: 1.4rem;
+}
+
+.files-tree .hint {
+  margin-bottom: 0.4rem;
+}
+
+/* ------------------------------------------------------------- validation */
+
+#validation .val-ok {
+  color: var(--q-ok);
+}
+
+#validation .val-errors {
+  color: var(--q-error);
+  font-weight: 600;
+}
+
+#validation .val-error {
+  color: var(--q-error);
+  margin: 0.15rem 0 0.15rem 0.6rem;
+}
+
+#validation .val-warnings {
+  color: var(--q-warn);
+  font-weight: 600;
+}
+
+#validation .val-warning {
+  color: var(--q-warn);
+  margin: 0.15rem 0 0.15rem 0.6rem;
+}
+
+#validation .val-empty {
+  color: var(--q-hint);
+  font-style: italic;
+  margin-left: 0.6rem;
+}
+
+/* ------------------------------------------------------------- badges & log */
+
+.badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 3px;
+  background: var(--q-panel-2);
+  border: 1px solid var(--q-bevel-light);
+  color: var(--q-warn);
+  vertical-align: middle;
+}
+
+.badge[data-visible="true"] {
+  visibility: visible;
+}
+
+.log {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  background: var(--q-inset);
+  color: var(--q-text);
+  border: 1px solid var(--q-bevel-light);
+  border-radius: 3px;
+  padding: 0.4rem 0.6rem;
+  margin: 0.25rem 0;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
-footer { border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+/* ------------------------------------------------------------- status bar (console) */
+
+#status-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* maximum practical z-index: nothing may ever paint above it */
+  z-index: 2147483000;
+  /* own compositor layer: mobile browsers cannot drop it while scrolling */
+  transform: translateZ(0);
+  will-change: transform;
+  background: #0d0a07;
+  border-top: 2px solid var(--q-bevel-light);
+  padding: 0.35rem 0.75rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+  min-height: 1.4rem;
+}
+
+#status-bar .status {
+  /* amber console text */
+  color: #f4c569;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+/* keep all page content visible above the fixed status bar */
+body {
+  padding-bottom: 2.8rem;
+}
+
+/* ------------------------------------------------------------- CodeMirror */
+
+#raw-cm .cm-editor {
+  background: var(--q-inset);
+  border: 2px solid;
+  border-color: var(--q-bevel-dark) var(--q-bevel-light) var(--q-bevel-light) var(--q-bevel-dark);
+  border-radius: 3px;
+  color: var(--q-text);
+}
+
+#raw-cm .cm-editor {
+  /* the editor sizes to its content; long documents scroll inside.
+     No forced min-height, so short JSON leaves no empty box below it. */
+  max-height: 45rem;
+}
+
+#raw-cm .cm-scroller {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  overflow: auto;
+}
+
+#raw-cm .cm-gutters {
+  background: var(--q-panel);
+  border-right: 1px solid var(--q-bevel-light);
+  color: var(--q-hint);
+}
+
+#raw-cm .cm-activeLine {
+  background: rgba(255, 196, 77, 0.07);
+}
+
+#raw-cm .cm-activeLineGutter {
+  background: rgba(255, 196, 77, 0.12);
+  color: var(--q-text-bright);
+}
+
+#raw-cm .cm-selectionBackground,
+#raw-cm .cm-editor ::selection {
+  background: rgba(224, 167, 46, 0.3) !important;
+}
+
+#raw-cm .cm-cursor {
+  border-left-color: var(--q-gold-bright);
+}
+
+#raw-cm .cm-matchingBracket {
+  outline: 1px solid var(--q-gold);
+  background: rgba(224, 167, 46, 0.18);
+}
+
+#raw-cm .cm-tooltip {
+  background: var(--q-panel);
+  border: 1px solid var(--q-bevel-light);
+  color: var(--q-text);
+}

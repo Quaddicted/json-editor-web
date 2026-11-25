@@ -1,0 +1,60 @@
+{
+ "bytes": 951,
+ "files": {
+  "dir/": {
+   "bytes": 0,
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "timestamp": "2021-01-01T00:00:02.000Z"
+  },
+  "inner.zip": {
+   "bytes": 218,
+   "files": {
+    "data/": {
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "timestamp": "2021-03-04T05:06:08.000Z"
+    },
+    "inner.txt": {
+     "bytes": 14,
+     "sha256": "64741ebb969586b9cbfa685b8bb3d8ab21cbef47243b260e72983b2f8b14daba",
+     "timestamp": "2021-03-04T05:06:08.000Z"
+    }
+   },
+   "sha256": "88e12a8943052ee19e008c7f6518b7e8e6f671e2f871f2bbc32206a36461c0c8",
+   "timestamp": "2020-05-06T07:08:10.000Z"
+  },
+  "pak0.pak": {
+   "bytes": 200,
+   "files": {
+    "maps/test.bsp": {
+     "bytes": 45,
+     "sha256": "618daf55d1b8e2357479cd6bc659e53b18ae5d36a66be4c0973d8b2390064f62"
+    },
+    "progs.dat": {
+     "bytes": 15,
+     "sha256": "a5a8f453f849b42a5ac467a12e754f89f9a3bde9809e22e23f453f3c1bc1786a"
+    }
+   },
+   "sha256": "92e7c1ed331eb85b187d254d9900beee64eccd84b8355ee4eec07fcb54d7828a",
+   "timestamp": "2020-05-06T07:08:12.000Z"
+  },
+  "readme.txt": {
+   "bytes": 26,
+   "sha256": "a7833db314f02a4b9fef3691b59a1859bf91de130274d99c464a600d94b15e2c",
+   "timestamp": "2021-07-12T17:54:58.000Z"
+  },
+  "stored.bin": {
+   "bytes": 256,
+   "sha256": "40aff2e9d2d8922e47afd4648e6967497158785fbd1da870e7110266bf944880",
+   "timestamp": "2019-11-30T23:59:58.000Z"
+  }
+ },
+ "json_version": "2025.09.27",
+ "sha256": "6362db7040308fa0149c94e68b13df06854d18cc4a0a2abe885e14a3eb819537",
+ "tags": [
+  "filename=test.zip"
+ ],
+ "urls": [
+  "https://www.quaddicted.com/files/by-sha256/63/6362db7040308fa0149c94e68b13df06854d18cc4a0a2abe885e14a3eb819537/test.zip"
+ ]
+}

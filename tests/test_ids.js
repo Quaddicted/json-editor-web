@@ -1,43 +1,85 @@
-"use strict";
+// Checks that every $("id") referenced in js/app.js exists in index.html and
+// that every script src referenced in index.html exists on disk.
+var fs = require("fs");
+var path = require("path");
 
-const fs = require("fs");
-const path = require("path");
+var ROOT = path.join(__dirname, "..");
+var failures = 0;
 
-const root = path.join(__dirname, "..");
-const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const appJs = fs.readFileSync(path.join(root, "js", "app.js"), "utf8");
-
-let failures = 0;
-function ok(cond, name) {
-  if (cond) console.log("ok - " + name);
-  else {
+function ok(cond, message) {
+  if (cond) {
+    console.log("  ok - " + message);
+  } else {
     failures++;
-    console.error("FAIL - " + name);
+    console.log("  FAIL - " + message);
   }
 }
 
-const htmlIds = new Set([...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
-const usedIds = new Set([...appJs.matchAll(/\$\("([^"]+)"\)/g)].map((m) => m[1]));
+var appSrc = fs.readFileSync(path.join(ROOT, "js", "app.js"), "utf8");
+var html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 
-for (const id of usedIds) {
-  ok(htmlIds.has(id), 'app.js $("' + id + '") exists in index.html');
+var referenced = {};
+var re = /\$\("([A-Za-z0-9_-]+)"\)/g;
+var m;
+while ((m = re.exec(appSrc)) !== null) {
+  referenced[m[1]] = true;
+}
+var referencedIds = Object.keys(referenced);
+ok(referencedIds.length >= 25, "found a reasonable number of $() references (" + referencedIds.length + ")");
+
+var htmlIds = {};
+var idRe = /id="([^"]+)"/g;
+while ((m = idRe.exec(html)) !== null) {
+  if (htmlIds[m[1]]) {
+    failures++;
+    console.log("  FAIL - duplicate id in index.html: " + m[1]);
+  }
+  htmlIds[m[1]] = true;
 }
 
-const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
-ok(scripts.length === 1, "single bundle script tag, got " + scripts.length);
-ok(JSON.stringify(scripts) === JSON.stringify(["js/bundle.js"]), "script is js/bundle.js: " + scripts.join(","));
-for (const s of scripts) {
-  ok(fs.existsSync(path.join(root, s)), "script exists: " + s);
+referencedIds.forEach(function (id) {
+  ok(!!htmlIds[id], 'app.js $("' + id + '") exists in index.html');
+});
+
+var srcRe = /<script src="([^"]+)"><\/script>/g;
+var srcs = [];
+while ((m = srcRe.exec(html)) !== null) {
+  srcs.push(m[1]);
 }
-ok(/<link rel="stylesheet" href="style\.css">/.test(html) && fs.existsSync(path.join(root, "style.css")), "stylesheet exists");
-ok(/http-equiv="Content-Security-Policy"/.test(html), "CSP meta present");
-ok(/connect-src[^"]*https:\/\/www\.quaddicted\.com/.test(html), "CSP connect-src allows quaddicted API");
-ok(!/<script(?![^>]*\bsrc=)[^>]*>/.test(html), "no inline scripts");
-ok(!/style="/.test(html), "no inline styles");
-ok(!/innerHTML/.test(appJs), "app.js never uses innerHTML");
+ok(srcs.length >= 6, "index.html loads " + srcs.length + " scripts");
+srcs.forEach(function (src) {
+  ok(fs.existsSync(path.join(ROOT, src)), "script exists: " + src);
+});
+
+["serialize", "tagdata", "validate", "scan", "github", "app"].forEach(function (name) {
+  ok(srcs.indexOf("js/" + name + ".js") !== -1, "script order includes js/" + name + ".js");
+  var order = srcs.indexOf("js/" + name + ".js");
+  if (name !== "serialize" && order !== -1) {
+    ok(srcs.indexOf("js/serialize.js") < order, "js/serialize.js loads before js/" + name + ".js");
+  }
+});
+
+ok(html.indexOf("http-equiv=\"Content-Security-Policy\"") !== -1, "CSP meta present");
+ok(html.indexOf("innerHTML") === -1, "no innerHTML in index.html");
+ok(appSrc.indexOf(".innerHTML") === -1, "no .innerHTML usage in app.js");
+
+// CSP: nonce for the CodeMirror <style>, no unsafe-inline, no raw.githubusercontent
+(function () {
+  var m = /<meta http-equiv="Content-Security-Policy" content="([^"]*)">/.exec(html);
+  ok(m !== null, "CSP meta tag present");
+  if (m) {
+    var csp = m[1];
+    ok(csp.indexOf("unsafe-inline") === -1, "CSP has no unsafe-inline");
+    ok(csp.indexOf("nonce-") !== -1, "CSP allows a style nonce");
+    ok(csp.indexOf("raw.githubusercontent.com") === -1,
+       "CSP connect-src no longer allows raw.githubusercontent.com");
+    ok(csp.indexOf("https://api.github.com") !== -1, "CSP still allows api.github.com");
+    ok(csp.indexOf("https://www.quaddicted.com") !== -1, "CSP still allows www.quaddicted.com");
+  }
+})();
 
 if (failures) {
   console.error(failures + " failure(s)");
   process.exit(1);
 }
-console.log("test_ids: all passed (" + usedIds.size + " ids checked)");
+console.log("test_ids: all passed");

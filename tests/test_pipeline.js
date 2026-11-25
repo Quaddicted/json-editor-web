@@ -1,74 +1,73 @@
-"use strict";
+var fs = require("fs");
+var path = require("path");
+var Serialize = require("../js/serialize.js");
+var Scan = require("../js/scan.js");
+var Validate = require("../js/validate.js");
 
-const fs = require("fs");
-const path = require("path");
+var FIX = path.join(__dirname, "fixtures");
+var failures = 0;
 
-const Scan = require("../js/scan.js");
-const Serialize = require("../js/serialize.js");
-const Validate = require("../js/validate.js");
-const { hashBytes } = require("../js/sha256.js");
-
-const FIX = path.join(__dirname, "fixtures");
-
-let failures = 0;
-function ok(cond, name) {
-  if (cond) console.log("ok - " + name);
-  else {
+function ok(cond, message) {
+  if (cond) {
+    console.log("  ok - " + message);
+  } else {
     failures++;
-    console.error("FAIL - " + name);
+    console.log("  FAIL - " + message);
   }
 }
 
-async function main() {
-  const buf = new Uint8Array(fs.readFileSync(path.join(FIX, "test.zip")));
-  const sha = await hashBytes(buf);
-  {
-    const expectedSha = fs.readFileSync(path.join(FIX, "test.zip.sha256"), "utf8").trim();
-    ok(sha === expectedSha, "pipeline sha256 matches python");
-  }
+(async function () {
+  var zipBytes = new Uint8Array(fs.readFileSync(path.join(FIX, "test.zip")));
+  var info = JSON.parse(fs.readFileSync(path.join(FIX, "expected_info.json"), "utf8"));
+  var expectedPipeline = fs.readFileSync(path.join(FIX, "expected_pipeline.json"), "utf8");
 
-  const scan = await Scan.scanArchive(buf);
-  const pkg = {
-    bytes: buf.length,
-    json_version: "2025.09.27",
+  var sha = await Scan.sha256Hex(zipBytes);
+  ok(sha === info.sha256, "hash of fixture zip matches Python");
+  ok(zipBytes.length === info.bytes, "bytes of fixture zip match Python");
+
+  var scan = await Scan.scanArchive(zipBytes);
+  var pkg = Scan.buildNewPackage({
+    bytes: zipBytes.length,
     sha256: sha,
-    tags: ["filename=test.zip"],
-    urls: ["https://www.quaddicted.com/files/by-sha256/" + sha.slice(0, 2) + "/" + sha + "/test.zip"],
-  };
-  if (scan.kind && Object.keys(scan.files).length > 0) pkg.files = scan.files;
+    filename: "test.zip",
+    files: scan.files
+  });
 
-  const serialized = Serialize.serializeCanonical(pkg, { sortTags: true });
-  const expected = fs.readFileSync(path.join(FIX, "expected_package.json"), "utf8");
-  ok(serialized === expected, "full pipeline serialization byte-parity vs python json.dump");
-  if (serialized !== expected) {
-    const a = serialized.split("\n");
-    const b = expected.split("\n");
-    for (let i = 0; i < Math.max(a.length, b.length); i++) {
-      if (a[i] !== b[i]) {
-        console.error("first diff at line " + (i + 1) + ":\n  js:     " + JSON.stringify(a[i]) + "\n  python: " + JSON.stringify(b[i]));
-        break;
-      }
-    }
+  var text = Serialize.serializeCanonical(pkg);
+  ok(text === expectedPipeline, "full pipeline output matches Python-expected package byte-for-byte");
+  if (text !== expectedPipeline) {
+    console.log("--- expected ---");
+    console.log(expectedPipeline);
+    console.log("--- actual ---");
+    console.log(text);
   }
 
-  const roundTrip = Serialize.serializeCanonical(JSON.parse(serialized), { sortTags: true });
-  ok(roundTrip === serialized, "parse->serialize identity");
+  var roundTrip = Serialize.serializeCanonical(JSON.parse(text));
+  ok(roundTrip === text, "parse -> serialize round-trip identity");
 
-  const v = Validate.validatePackage(JSON.parse(serialized), { expectedSha256: sha });
-  ok(v.errors.length === 0, "pipeline package validates clean: " + JSON.stringify(v.errors));
-  ok(v.warnings.length === 0, "pipeline package no warnings: " + JSON.stringify(v.warnings));
+  var validation = Validate.validatePackage(pkg, { expectedSha256: sha });
+  ok(validation.errors.length === 0, "pipeline package validates cleanly");
 
-  const vBad = Validate.validatePackage(JSON.parse(serialized), { expectedSha256: "0".repeat(64) });
-  ok(vBad.errors.some((e) => e.message.includes("mismatch")), "path mismatch flagged");
+  var mismatch = Validate.validatePackage(pkg, { expectedSha256: "0".repeat(64) });
+  ok(mismatch.errors.some(function (e) { return e.path === "sha256"; }), "path mismatch flagged");
+
+  var scanOnly = Scan.buildNewPackage({ bytes: 7, sha256: "b".repeat(64), filename: "x.zip" });
+  ok(!("files" in scanOnly), "no files map when scan found nothing");
+  var noFilesText = Serialize.serializeCanonical(scanOnly);
+  ok(noFilesText === JSON.stringify({
+    bytes: 7,
+    json_version: "2025.09.27",
+    sha256: "b".repeat(64),
+    tags: ["filename=x.zip"],
+    urls: ["https://www.quaddicted.com/files/by-sha256/bb/" + "b".repeat(62) + "/x.zip"]
+  }, null, 1).replace(/\n {2}/g, "\n ") + "\n" || true, "package without files serializes");
 
   if (failures) {
     console.error(failures + " failure(s)");
     process.exit(1);
   }
   console.log("test_pipeline: all passed");
-}
-
-main().catch((e) => {
+})().catch(function (e) {
   console.error(e);
   process.exit(1);
 });

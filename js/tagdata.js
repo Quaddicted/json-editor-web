@@ -1,59 +1,63 @@
+/*!
+ * Known tag keys for Quaddicted/quaddicted-data packages.
+ * Ref: https://github.com/Quaddicted/quaddicted-data/wiki/Tags
+ * UMD: window.Tagdata or module.exports.
+ */
 (function (root, factory) {
-  const api = factory();
-  if (typeof module !== "undefined" && module.exports) module.exports = api;
-  root.TagData = api;
-})(typeof self !== "undefined" ? self : globalThis, function () {
+  if (typeof module === "object" && module.exports) {
+    module.exports = factory();
+  } else {
+    root.Tagdata = factory();
+  }
+})(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const KNOWN_KEYS = [
-    "bytes",
-    "sha256",
-    "description",
-    "files",
-    "install",
-    "json_version",
-    "notes",
-    "tags",
-    "urls",
+  // cardinality: "once" (should appear at most once), "multiple" (may repeat)
+  var KNOWN_TAGS = [
+    { key: "author", hint: "Author of the release, may appear multiple times.", example: "author=Tronyn", cardinality: "multiple" },
+    { key: "title", hint: "Title of the release.", example: "title=Cathedral of the Doubt", cardinality: "once" },
+    { key: "alternative_title", hint: "Alternative title.", example: "alternative_title=CotD", cardinality: "once" },
+    { key: "filename", hint: "Filename of the archived file.", example: "filename=cotdq1sp.zip", cardinality: "once" },
+    { key: "game", hint: "Game this is for.", example: "game=quake", cardinality: "once" },
+    { key: "game_mode", hint: "Game mode.", example: "game_mode=singleplayer", cardinality: "once" },
+    { key: "type", hint: "Type of the release.", example: "type=map", cardinality: "once" },
+    { key: "theme", hint: "Theme(s) of the release, may appear multiple times.", example: "theme=base", cardinality: "multiple" },
+    { key: "startmap", hint: "Map to start the release with.", example: "startmap=cotdq1sp", cardinality: "once" },
+    { key: "release_date", hint: "Release date: YYYY, YYYY-MM or YYYY-MM-DD.", example: "release_date=2021-07-12", cardinality: "once" },
+    { key: "version", hint: "Version of the release.", example: "version=1.0", cardinality: "once" },
+    { key: "commandline", hint: "Command line to run the release.", example: "commandline=-game cotd", cardinality: "once" },
+    { key: "link", hint: "Plain URL or markdown link [title](url).", example: "link=[Thread](https://www.quaddicted.com/forum/)", cardinality: "multiple" },
+    { key: "nonspecific_tag", hint: "Free-form tag, may appear multiple times.", example: "nonspecific_tag=cathedral", cardinality: "multiple" },
+    { key: "source", hint: "Whether the source is included.", example: "source=included", cardinality: "once" },
+    { key: "zipbasedir", hint: "LEGACY: superseded by install->extractmapping.", example: "zipbasedir=id1/maps/", cardinality: "once", legacy: true }
   ];
 
-  const SINGLE_KEYS = ["title", "release_date", "version"];
+  var KNOWN_KEYS = KNOWN_TAGS.map(function (t) { return t.key; });
 
-  const KNOWN_TAGS = [
-    { key: "author", hint: "Author(s) of the package", example: "author=John Doe", multiple: true },
-    { key: "title", hint: "Human readable title", example: "title=The Biogenetic Forge", once: true },
-    { key: "alternative_title", hint: "Alternative title", example: "alternative_title=Bioforge", multiple: true },
-    { key: "filename", hint: "Original file name", example: "filename=bioforge.zip", once: true },
-    { key: "game", hint: "Game this is for", example: "game=quake" },
-    { key: "game_mode", hint: "e.g. singleplayer, coop, deathmatch", example: "game_mode=singleplayer" },
-    { key: "type", hint: "Kind of package", example: "type=map" },
-    { key: "theme", hint: "Theme of the map", example: "theme=metal", multiple: true },
-    { key: "startmap", hint: "Map to start with", example: "startmap=base1" },
-    { key: "release_date", hint: "YYYY, YYYY-MM or YYYY-MM-DD", example: "release_date=1998-01-22", once: true },
-    { key: "version", hint: "Package version", example: "version=1.2", once: true },
-    { key: "commandline", hint: "Quake command line arguments", example: "commandline=-hipnotic" },
-    { key: "link", hint: "URL or markdown [title](url)", example: "link=[Quaddicted](https://www.quaddicted.com)", multiple: true },
-    { key: "dependency", hint: "Package this depends on", example: "dependency=hipnotic", multiple: true },
-    { key: "depends", hint: "Alias style dependency", example: "depends=hipnotic", multiple: true },
-    { key: "provides", hint: "What this package provides", example: "provides=maps", multiple: true },
-    { key: "source", hint: "Source of the package", example: "source=id1", multiple: true },
-    { key: "mod", hint: "Mod this belongs to", example: "mod=arcane_dimensions", multiple: true },
-    { key: "map_size", hint: "Size of the map", example: "map_size=small", multiple: true },
-    { key: "map_layout", hint: "Layout of the map", example: "map_layout=vertical", multiple: true },
-    { key: "style", hint: "Mapping style", example: "style=jumppad", multiple: true },
-    { key: "playstyle", hint: "Playstyle", example: "playstyle=puzzle", multiple: true },
-    { key: "music", hint: "Music used", example: "music=custom", multiple: true },
-    { key: "bsp_format", hint: "BSP format", example: "bsp_format=29", multiple: true },
-    { key: "license", hint: "License of the package", example: "license=WTFPL", multiple: true },
-    { key: "zipbasedir", hint: "Legacy: base dir inside the zip", example: "zipbasedir=hipnotic/maps/", legacy: true },
-  ];
+  var SINGLE_KEYS = ["title", "release_date", "version"];
 
   function mainKeyOf(tagString) {
-    const eq = tagString.indexOf("=");
-    const keyString = eq < 0 ? tagString : tagString.slice(0, eq);
-    const colon = keyString.indexOf(":");
-    return colon < 0 ? keyString : keyString.slice(0, colon);
+    var s = String(tagString);
+    var eq = s.indexOf("=");
+    var key = eq >= 0 ? s.slice(0, eq) : s;
+    var colon = key.indexOf(":");
+    return colon >= 0 ? key.slice(0, colon) : key;
   }
 
-  return { KNOWN_TAGS, KNOWN_KEYS, SINGLE_KEYS, mainKeyOf };
+  function infoFor(key) {
+    for (var i = 0; i < KNOWN_TAGS.length; i++) {
+      if (KNOWN_TAGS[i].key === key) {
+        return KNOWN_TAGS[i];
+      }
+    }
+    return null;
+  }
+
+  return {
+    KNOWN_TAGS: KNOWN_TAGS,
+    KNOWN_KEYS: KNOWN_KEYS,
+    SINGLE_KEYS: SINGLE_KEYS,
+    mainKeyOf: mainKeyOf,
+    infoFor: infoFor
+  };
 });
