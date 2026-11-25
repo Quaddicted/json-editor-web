@@ -559,3 +559,44 @@ body {
   border: 1px solid var(--q-bevel-light);
   color: var(--q-text);
 }
+
+/* JSON syntax token colors, from the quaddicted.com palette
+ *  (all pairs verified >= 4.5:1 on the --q-inset editor background) */
+#raw-cm .cm-string {
+/* quaddicted link color #CCCC99: strings */
+color: #cccc99;
+}
+
+#raw-cm .cm-number {
+/* gold: numbers */
+color: var(--q-gold-bright);
+}
+
+#raw-cm .cm-bool {
+/* quaddicted "true": gold */
+color: var(--q-gold);
+}
+
+#raw-cm .cm-null {
+/* null: warning amber */
+color: var(--q-warn);
+}
+
+#raw-cm .cm-property {
+/* property names: cream body text */
+color: var(--q-text-bright);
+}
+
+#raw-cm .cm-keyword {
+/* keywords: bright cream */
+color: #ffffff;
+}
+
+#raw-cm .cm-comment {
+/* comments: hint olive */
+color: var(--q-hint);
+}
+
+#raw-cm .cm-invalid {
+color: var(--q-danger);
+}
