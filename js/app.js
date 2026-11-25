@@ -1039,10 +1039,6 @@
     secPkg.appendChild(h("div", { class: "hint", text: "Markdown preview:" }));
     secPkg.appendChild(descPreview);
     renderMarkdown(descPreview, pkg.description);
-    secPkg.appendChild(h("div", {
-      class: "hint",
-      text: "bytes and sha256 are read-only here; they come from the loaded file (create a New package from file to change them). json_version is not shown here; use the JSON editor if you need to touch it."
-    }));
     pane.appendChild(secPkg);
 
     // Tags ---------------------------------------------------------------

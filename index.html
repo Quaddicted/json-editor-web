@@ -49,10 +49,8 @@
       <section class="side-section" id="qd-panel">
         <h2>Submit via Quaddicted</h2>
         <p class="hint">
-          No GitHub account or PAT needed: posts the package to
-          <code>quaddicted.com/db/json_upload</code>, which opens the pull
-          request against <code>Quaddicted/quaddicted-data</code> for you.
-          You grant Quaddicted.com/Spirit all rights to the submitted JSON data.
+          Posts the package to <a href="https://github.com/Quaddicted/quaddicted-data">Quaddicted/quaddicted-data</a> for you using a Quaddicted bot account.
+          You grant Quaddicted.com/Spirit all rights to the submitted JSON data!
         </p>
         <div class="row">
           <input type="text" id="inp-qd-title" placeholder="pull request title (prefilled from the package)">
@@ -64,11 +62,11 @@
         <div id="qd-result"></div>
       </section>
       <section class="side-section" id="pr-panel">
-        <h2>Create pull request</h2>
+        <h2>Submit using your own GitHub account</h2>
         <p class="hint">
-          Uses a GitHub PAT with access to <code>Quaddicted/quaddicted-data</code>
+          Uses a GitHub PAT with access to <a href="https://github.com/Quaddicted/quaddicted-data">Quaddicted/quaddicted-data</a>
           (classic PAT with <code>repo</code> scope, or a fine-grained PAT with
-          Contents:write and Pull requests:write on all your repositories).
+          <code>Contents:write</code> and <code>Pull requests:write</code> on all your repositories).
           The PAT is only sent to api.github.com and, if you save it, stored in localStorage.
         </p>
         <div class="row">
@@ -82,14 +80,6 @@
       </section>
     </div>
   </main>
-  <footer>
-    <p>
-      Unofficial tool for
-      <a href="https://github.com/Quaddicted/quaddicted-data" rel="noopener noreferrer">Quaddicted/quaddicted-data</a>
-      and <a href="https://www.quaddicted.com/" rel="noopener noreferrer">quaddicted.com</a>.
-      No server-side state; your data stays in your browser.
-    </p>
-  </footer>
   <script src="js/vendor/pako_inflate.min.js"></script>
   <script src="js/vendor/codemirror6.bundle.js"></script>
   <script src="js/serialize.js"></script>
