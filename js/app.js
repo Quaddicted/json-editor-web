@@ -645,19 +645,13 @@
     try {
       var hash = root.location && root.location.hash ? root.location.hash : "";
       var m = /(?:^#|&)sha256=([a-f0-9]{64})/i.exec(hash);
+
+      // clear URL, so that the user does not lose data if they edit and refresh/bookmark
+      history.pushState("", document.title, root.location.pathname + root.location.search);
+
       return m ? m[1].toLowerCase() : null;
     } catch (e) {
       return null;
-    }
-  }
-
-  function setUrlHash(sha256) {
-    try {
-      if (root.location) {
-        root.location.hash = "sha256=" + sha256;
-      }
-    } catch (e) {
-      /* location unavailable */
     }
   }
 
@@ -687,7 +681,6 @@
     state.originText = canonicalText();
     state.rawParseError = null;
     state.scanErrors = {};
-    setUrlHash(sha256);
     renderForm();
     updateAll();
     setStatus("Loaded metadata for " + sha256.slice(0, 12) + " from the Quaddicted API.");
