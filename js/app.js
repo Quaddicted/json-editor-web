@@ -1437,7 +1437,7 @@
         var parsed = Validate.parseTag(input.value);
         var info = Tagdata.infoFor(parsed.key);
         if (info) {
-          hint.appendChild(document.createTextNode(info.hint + (info.legacy ? " (legacy)" : "")));
+          hint.appendChild(document.createTextNode(info.hint));
         } else {
           hint.appendChild(document.createTextNode("Unknown key '" + parsed.key + "'."));
         }
