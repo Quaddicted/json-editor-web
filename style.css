@@ -1,0 +1,127 @@
+:root {
+  color-scheme: dark;
+  --bg: #14161a;
+  --panel: #1c1f26;
+  --border: #333a45;
+  --fg: #e6e9ee;
+  --muted: #9aa4b2;
+  --accent: #5aa2ff;
+  --err: #ff6b6b;
+  --warn: #ffd166;
+  --ok: #6bd68a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+header, footer { padding: 12px 20px; }
+header { border-bottom: 1px solid var(--border); }
+h1 { font-size: 20px; margin: 8px 0 4px; }
+h2 { font-size: 15px; margin: 0 0 6px; }
+.tagline { color: var(--muted); margin: 0 0 10px; }
+a { color: var(--accent); }
+code { background: var(--panel); padding: 1px 4px; border-radius: 4px; }
+
+#toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#status { color: var(--muted); }
+
+#paste-panel { margin-top: 10px; }
+#paste-text { width: 100%; font-family: ui-monospace, monospace; }
+#paste-panel div { margin-top: 6px; }
+
+#draft-banner {
+  margin-top: 10px;
+  padding: 6px 10px;
+  background: #3a3320;
+  border: 1px solid var(--warn);
+  border-radius: 6px;
+  display: inline-block;
+}
+
+button {
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.primary { background: var(--accent); color: #0b1220; border-color: var(--accent); }
+
+input[type="text"], input[type="password"], textarea, select {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font: inherit;
+}
+textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 45%);
+  gap: 16px;
+  padding: 16px 20px;
+}
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+#form-pane section, #side-pane > section, #side-pane > label {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+#side-pane > label { display: block; font-weight: 600; }
+
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.field > span { color: var(--muted); font-size: 12px; }
+.field input { width: 100%; }
+
+.tag-row, .url-row, .map-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+
+details.collapsible { margin: 6px 0; }
+details.collapsible > summary { cursor: pointer; color: var(--muted); font-size: 12px; user-select: none; }
+details.collapsible > summary:hover { color: var(--accent); }
+.tag-row input, .url-row input, .map-row input { flex: 1; }
+.tag-hint { color: var(--muted); font-size: 12px; }
+
+.files-tree { font-family: ui-monospace, monospace; font-size: 13px; }
+.files-node { margin-left: 14px; border-left: 1px solid var(--border); padding-left: 8px; }
+.files-entry { margin: 4px 0; }
+.files-entry .entry-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.files-entry .entry-fields { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 4px 18px; }
+.files-entry .entry-fields label { color: var(--muted); font-size: 12px; display: flex; flex-direction: column; }
+.files-entry .entry-fields input { width: 200px; font-family: inherit; font-size: 12px; }
+
+#validation ul { margin: 6px 0 0; padding-left: 18px; }
+#validation .err { color: var(--err); }
+#validation .warn { color: var(--warn); }
+#validation .pass { color: var(--ok); }
+
+#raw { width: 100%; }
+#export-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+#modified-badge { color: var(--warn); font-size: 12px; }
+
+#pr-panel input { width: 100%; margin-bottom: 6px; }
+#pr-log {
+  max-height: 220px;
+  overflow: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+footer { border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }

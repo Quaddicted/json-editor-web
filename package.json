@@ -1,0 +1,20 @@
+{
+  "name": "quaddicted-data-web-editor",
+  "private": true,
+  "description": "Single-page client-side editor for Quaddicted/quaddicted-data JSON package files. ZIP handling via node-stream-zip, bundled for the browser with esbuild.",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "sh tests/run_all.sh"
+  },
+  "dependencies": {
+    "buffer": "^6.0.3",
+    "events": "^3.3.0",
+    "node-stream-zip": "^1.16.0",
+    "pako": "^2.1.0",
+    "path-browserify": "^1.0.1",
+    "readable-stream": "^4.8.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

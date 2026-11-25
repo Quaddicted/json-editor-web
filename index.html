@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://raw.githubusercontent.com https://api.github.com https://www.quaddicted.com; style-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>quaddicted-data web editor</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>quaddicted-data web editor</h1>
+  <p class="tagline">Create and edit JSON package files for
+    <a href="https://github.com/Quaddicted/quaddicted-data" rel="noopener noreferrer">Quaddicted/quaddicted-data</a>
+    (data behind <a href="https://www.quaddicted.com" rel="noopener noreferrer">quaddicted.com</a>).
+    Everything runs locally in your browser; drafts stay in <code>localStorage</code>.</p>
+  <div id="toolbar">
+    <button id="btn-new" type="button">New from file&hellip;</button>
+    <input id="file-new" type="file" accept=".zip,.pak,.json,application/json,application/zip" hidden>
+    <input id="inp-sha" type="text" placeholder="sha256 of an existing package" size="40" spellcheck="false">
+    <button id="btn-open-sha" type="button">Open by sha256</button>
+    <button id="btn-reload-api" type="button" disabled>Reload metadata from quaddicted API</button>
+    <button id="btn-open-json" type="button">Open JSON file&hellip;</button>
+    <input id="file-json" type="file" accept=".json,application/json" hidden>
+    <button id="btn-paste" type="button">Paste JSON&hellip;</button>
+    <span id="status" role="status"></span>
+  </div>
+  <div id="paste-panel" hidden>
+    <textarea id="paste-text" rows="10" placeholder="Paste package JSON here"></textarea>
+    <div>
+      <button id="btn-paste-load" type="button">Load pasted JSON</button>
+    </div>
+  </div>
+  <div id="draft-banner" hidden>
+    A saved draft exists. <button id="btn-discard-draft" type="button">Discard draft</button>
+  </div>
+</header>
+<main>
+  <section id="form-pane" aria-label="Package form"></section>
+  <aside id="side-pane">
+    <section id="validation" aria-label="Validation"></section>
+    <label for="raw">Raw JSON (two-way synced with the form)</label>
+    <textarea id="raw" rows="24" spellcheck="false"></textarea>
+    <div id="export-bar">
+      <span id="modified-badge" hidden>modified</span>
+      <button id="btn-download" type="button" disabled>Download &lt;sha256&gt;.json</button>
+      <button id="btn-copy" type="button" disabled>Copy JSON</button>
+    </div>
+    <section id="pr-panel" aria-label="Create pull request">
+      <h2>Create a pull request</h2>
+      <p>Uses a GitHub personal access token stored only in this browser's <code>localStorage</code>.
+      Classic token with <code>repo</code> scope, or fine-grained token with Contents:write and Pull requests:write.</p>
+      <input id="inp-pat" type="password" placeholder="GitHub personal access token" autocomplete="off">
+      <button id="btn-save-pat" type="button">Save token</button>
+      <button id="btn-forget-pat" type="button">Forget token</button>
+      <button id="btn-pr" type="button" disabled>Create pull request</button>
+      <pre id="pr-log" hidden></pre>
+    </section>
+  </aside>
+</main>
+<footer>
+  <p>Static page, no server-side state. Validation mirrors the CI of
+  <a href="https://github.com/Quaddicted/quaddicted-data" rel="noopener noreferrer">Quaddicted/quaddicted-data</a>
+  (<a href="https://github.com/Quaddicted/tools" rel="noopener noreferrer">Quaddicted/tools</a>).</p>
+</footer>
+<script src="js/bundle.js"></script>
+</body>
+</html>
