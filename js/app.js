@@ -1018,7 +1018,7 @@
     ));
     linksRow.appendChild(openLink(
       "Open in the Quaddicted database (canonical)",
-      "https://www.quaddicted.com/db/v2/canonical/" + sha,
+      "https://www.quaddicted.com/db/canonical/" + sha,
       shaOk
     ));
     secPkg.appendChild(linksRow);
