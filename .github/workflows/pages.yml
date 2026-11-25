@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, vibe/quaddicted-data-web-editor-c1beaa]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
