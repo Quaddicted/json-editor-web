@@ -12,7 +12,7 @@
     <h1>quaddicted-data web editor</h1>
     <p>
       Create and edit JSON package files for
-      <a href="https://github.com/Quaddicted/quaddicted-data" rel="noopener noreferrer">Quaddicted/quaddicted-data</a>.
+      <a href="https://github.com/Quaddicted/quaddicted-data">Quaddicted/quaddicted-data</a>.
       Everything runs locally in your browser; drafts and your optional GitHub PAT live in localStorage only.
     </p>
     <div class="toolbar">
@@ -22,12 +22,7 @@
       <button type="button" id="btn-open-sha">Open by sha256 (API)</button>
       <input type="file" id="file-json" accept=".json,application/json" class="hidden-file">
       <button type="button" id="btn-open-json">Open JSON file</button>
-      <button type="button" id="btn-paste">Paste JSON</button>
       <button type="button" id="btn-reset">Clear / reset everything</button>
-    </div>
-    <div id="paste-panel" data-visible="false" class="panel hidden">
-      <textarea id="paste-text" rows="6" placeholder='{"bytes": 1, "sha256": "..."}'></textarea>
-      <button type="button" id="btn-paste-load">Load pasted JSON</button>
     </div>
     <div id="draft-banner" data-visible="false" class="banner hidden">
       A saved draft exists in this browser.

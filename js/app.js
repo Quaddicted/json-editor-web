@@ -327,14 +327,6 @@
     if (pane) {
       clear(pane);
     }
-    var pasteText = $("paste-text");
-    if (pasteText) {
-      pasteText.value = "";
-    }
-    var pastePanel = $("paste-panel");
-    if (pastePanel) {
-      pastePanel.setAttribute("data-visible", "false");
-    }
     var prLog = $("pr-log");
     if (prLog) {
       prLog.textContent = "";
@@ -1795,27 +1787,6 @@
       btnOpenJson.addEventListener("click", function () {
         if (fileJson) {
           fileJson.click();
-        }
-      });
-    }
-    var btnPaste = $("btn-paste");
-    if (btnPaste) {
-      btnPaste.addEventListener("click", function () {
-        var panel = $("paste-panel");
-        if (panel) {
-          panel.setAttribute("data-visible",
-            panel.getAttribute("data-visible") === "true" ? "false" : "true");
-        }
-      });
-    }
-    var btnPasteLoad = $("btn-paste-load");
-    if (btnPasteLoad) {
-      btnPasteLoad.addEventListener("click", function () {
-        var textEl = $("paste-text");
-        if (textEl && textEl.value.trim()) {
-          if (loadPackageFromText(textEl.value, { type: "paste", expectedSha256: null, filename: null })) {
-            setStatus("Loaded package from pasted JSON.");
-          }
         }
       });
     }
