@@ -546,7 +546,7 @@
   function updateButtons() {
     var ok = !!(state.pkg && state.validation && state.validation.errors.length === 0 &&
       Validate.isValidSha256(state.pkg.sha256));
-    var ids = ["btn-download", "btn-copy", "btn-pr", "btn-qd"];
+    var ids = ["btn-pr", "btn-qd"];
     var qdTitle = $("inp-qd-title");
     if (qdTitle && !qdTitleDirty) {
       qdTitle.value = qdAutoTitle();
