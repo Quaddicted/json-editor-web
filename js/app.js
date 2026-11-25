@@ -1011,13 +1011,13 @@
       shaOk
     ));
     linksRow.appendChild(openLink(
-      "Open in quaddicted-data (GitHub)",
+      "Open in quaddicted-data repo",
       "https://github.com/Quaddicted/quaddicted-data/blob/main/json/by-sha256/" +
         sha.slice(0, 2) + "/" + sha + ".json",
       shaOk
     ));
     linksRow.appendChild(openLink(
-      "Open in the Quaddicted database (canonical)",
+      "Open in the Quaddicted Database",
       "https://www.quaddicted.com/db/canonical/" + sha,
       shaOk
     ));
