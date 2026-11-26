@@ -218,6 +218,31 @@ function sleep(ms) {
   ok(readOnlyCodes.length === 2, "bytes and sha256 rendered as read-only code");
   ok(readOnlyCodes.some(function (c) { return c.textContent === "42"; }),
      "bytes shown read-only");
+  App.loadPackageFromText(JSON.stringify({
+    bytes: 1572864,
+    sha256: "b".repeat(64)
+  }), { type: "paste", expectedSha256: null, filename: null });
+  var sizedCodes = findAll(registry["form-pane"], function (c) {
+    return c.tagName === "code" && c.attrs["class"] === "readonly-value";
+  });
+  ok(sizedCodes.some(function (c) { return c.textContent === "1572864 (1.5 MB)"; }),
+     "package panel bytes shows MB size");
+  App.loadPackageFromText(JSON.stringify({
+    bytes: 2048,
+    sha256: "b".repeat(64),
+    files: { "a.txt": { bytes: 5368709120, sha256: "c".repeat(64) } }
+  }), { type: "paste", expectedSha256: null, filename: null });
+  var sizedCodes2 = findAll(registry["form-pane"], function (c) {
+    return c.tagName === "code" && c.attrs["class"] === "readonly-value";
+  });
+  ok(sizedCodes2.some(function (c) { return c.textContent === "2048 (2 KB)"; }),
+     "package panel bytes shows KB size");
+  ok(findAll(registry["form-pane"], function (c) {
+    return c.attrs["class"] === "tree-meta-row" &&
+      c.textContent.indexOf("5368709120 B (5 GB)") !== -1;
+  }).length === 1,
+     "file meta shows GB size");
+  App.loadPackageFromText(validPkg, { type: "paste", expectedSha256: null, filename: null });
   ok(readOnlyCodes.some(function (c) { return c.textContent === "a".repeat(64); }),
      "sha256 shown read-only");
   var jsonVersionLabels = findAll(registry["form-pane"], function (c) {

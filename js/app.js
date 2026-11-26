@@ -666,6 +666,27 @@
     return false;
   }
 
+  function sizeWithUnits(bytes) {
+    var n = typeof bytes === "number" ? bytes : parseInt(bytes, 10);
+    if (!isFinite(n) || isNaN(n) || n < 1024) {
+      return "";
+    }
+    var units = [["GB", 1024 * 1024 * 1024], ["MB", 1024 * 1024], ["KB", 1024]];
+    for (var i = 0; i < units.length; i++) {
+      if (n >= units[i][1]) {
+        return " (" + (Math.round(n / units[i][1] * 10) / 10) + " " + units[i][0] + ")";
+      }
+    }
+    return "";
+  }
+
+  function pkgBytesText(bytes) {
+    if (bytes === undefined || bytes === null) {
+      return "\u2014";
+    }
+    return String(bytes) + sizeWithUnits(bytes);
+  }
+
   function askSha256(message) {
     var v = null;
     try {
@@ -993,7 +1014,7 @@
     bytesRow.appendChild(h("label", { text: "bytes" }));
     bytesRow.appendChild(h("code", {
       class: "readonly-value",
-      text: pkg.bytes === undefined || pkg.bytes === null ? "\u2014" : String(pkg.bytes)
+      text: pkgBytesText(pkg.bytes)
     }));
     secPkg.appendChild(bytesRow);
     var shaRow = h("div", { class: "row" });
@@ -1550,7 +1571,7 @@
   function filesTreeMeta(entry) {
     var parts = [];
     if (entry && entry.bytes !== undefined && entry.bytes !== null) {
-      parts.push(entry.bytes + " B");
+      parts.push(entry.bytes + " B" + sizeWithUnits(entry.bytes));
     }
     if (entry && entry.sha256) {
       parts.push(entry.sha256.slice(0, 12) + "\u2026");
