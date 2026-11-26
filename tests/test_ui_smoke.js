@@ -289,6 +289,10 @@ function sleep(ms) {
   }), { type: "paste", expectedSha256: null, filename: null });
   var preview = findAll(registry["form-pane"], function (c) { return c.attrs["class"] === "md-preview"; })[0];
   ok(preview !== undefined, "markdown preview rendered below description input");
+  var descCol = findAll(registry["form-pane"], function (c) { return c.attrs["class"] === "desc-col"; })[0];
+  ok(descCol !== undefined && descCol.children[0].tagName === "textarea" &&
+     descCol.children[1].attrs["class"] === "hint" && descCol.children[2] === preview,
+     "preview sits directly under the description box, same size and position");
   var strong = findAll(preview, function (c) { return c.tagName === "strong"; })[0];
   ok(strong !== undefined && strong.textContent === "bold", "bold rendered");
   var em = findAll(preview, function (c) { return c.tagName === "em"; })[0];

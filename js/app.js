@@ -1059,8 +1059,9 @@
     secPkg.appendChild(linksRow);
     var descRow = h("div", { class: "row" });
     descRow.appendChild(h("label", { text: "description" }));
+    var descCol = h("div", { class: "desc-col" });
     var descPreview = h("div", { class: "md-preview" });
-    descRow.appendChild(textArea(pkg.description, function (v) {
+    descCol.appendChild(textArea(pkg.description, function (v) {
       setPkg("description", v || null);
       if (previewTimer) {
         clearTimeout(previewTimer);
@@ -1070,9 +1071,10 @@
         renderMarkdown(descPreview, v);
       }, 200);
     }));
+    descCol.appendChild(h("div", { class: "hint", text: "Markdown preview:" }));
+    descCol.appendChild(descPreview);
+    descRow.appendChild(descCol);
     secPkg.appendChild(descRow);
-    secPkg.appendChild(h("div", { class: "hint", text: "Markdown preview:" }));
-    secPkg.appendChild(descPreview);
     renderMarkdown(descPreview, pkg.description);
     pane.appendChild(secPkg);
 

@@ -334,6 +334,27 @@ button:disabled,
   min-width: 8rem;
 }
 
+
+/* description box with the markdown preview aligned underneath */
+.desc-col {
+  flex: 1 1 12rem;
+  min-width: 8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.desc-col textarea {
+  flex: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.desc-col .md-preview {
+  margin-bottom: 0;
+  min-height: 4.6rem;
+}
+
 /* tap-friendly tag autocomplete (datalist is unreliable on phones) */
 .suggest-box {
   margin: 0.15rem 0 0.35rem 1.9rem;
