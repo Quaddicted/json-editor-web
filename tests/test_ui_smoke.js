@@ -493,6 +493,19 @@ function sleep(ms) {
   globalThis.fetch = realFetch4;
   ok(App.state.pkg !== null && App.state.pkg.bytes === 5, "non-archive file loads as new package");
   ok(!("files" in App.state.pkg), "non-archive file has no files map");
+  ok(registry["form-pane"].children.length > 0, "form populated before a new load");
+  var unreadableFile = {
+    name: "unreadable.zip",
+    size: 10,
+    slice: function () {
+      return { arrayBuffer: async function () { throw new Error("boom"); } };
+    },
+    arrayBuffer: async function () { throw new Error("boom"); }
+  };
+  await App.newFromFile(unreadableFile);
+  ok(App.state.pkg === null, "old data removed when a new file load starts");
+  ok(registry["form-pane"].children.length === 0,
+     "form cleared before the new load begins");
 
   // raw JSON updates when a different package is loaded
   App.loadPackageFromText(validPkg, { type: "paste", expectedSha256: null, filename: null });

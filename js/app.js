@@ -704,6 +704,7 @@
   }
 
   async function openBySha256(sha256) {
+    resetAll();
     setStatus("Fetching metadata for " + sha256.slice(0, 12) + "...");
     try {
       var doc = await fetchMetadata(sha256);
@@ -781,6 +782,7 @@
   }
 
   async function newFromFile(file) {
+    resetAll();
     setStatus("Hashing " + file.name + "...");
     var sha256;
     try {
@@ -856,6 +858,7 @@
   }
 
   async function openJsonFile(file) {
+    resetAll();
     var text = await file.text();
     loadPackageFromText(text, {
       type: "json",
@@ -1786,6 +1789,7 @@
         if (fileNew.files && fileNew.files[0]) {
           newFromFile(fileNew.files[0]);
         }
+        fileNew.value = "";
       });
     }
     var btnNew = $("btn-new");
@@ -1816,6 +1820,7 @@
         if (fileJson.files && fileJson.files[0]) {
           openJsonFile(fileJson.files[0]);
         }
+        fileJson.value = "";
       });
     }
     var btnOpenJson = $("btn-open-json");
