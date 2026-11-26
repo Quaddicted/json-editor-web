@@ -308,6 +308,50 @@ function sleep(ms) {
     return c.tagName === "button" && c.textContent === "Copy tags from sha256";
   })[0];
   ok(copyBtn !== undefined, "copy tags button rendered in Tags section");
+  ok(findAll(registry["form-pane"], function (c) {
+    return c.tagName === "input" && c.attrs["placeholder"] === "sha256 of another package";
+  }).length === 0,
+     "no permanent sha256 input next to the copy tags button");
+  ok(registry["inp-sha"] === undefined, "toolbar sha256 text input removed");
+  var prompted = [];
+  globalThis.prompt = function (msg) { prompted.push(msg); return "f".repeat(64); };
+  var copyDialogFetch = async function () {
+    return {
+      ok: true,
+      status: 200,
+      json: async function () {
+        return [{ sha256: "f".repeat(64), bytes: 9, tags: ["game=quake", "theme=base"] }];
+      }
+    };
+  };
+  globalThis.fetch = copyDialogFetch;
+  copyBtn.click();
+  await sleep(10);
+  delete globalThis.prompt;
+  globalThis.fetch = realFetch;
+  ok(prompted.length === 1 && prompted[0].indexOf("sha256") !== -1,
+     "copy tags asks for the sha256 in a dialog");
+  ok(JSON.stringify(App.state.pkg.tags) === JSON.stringify(["game=quake", "title=Original", "theme=base"]),
+     "copy tags uses the sha256 entered in the dialog");
+  var openShaBtn = registry["btn-open-sha"];
+  var openPrompts = [];
+  globalThis.prompt = function (msg) { openPrompts.push(msg); return "e".repeat(64); };
+  globalThis.fetch = async function () {
+    return {
+      ok: true,
+      status: 200,
+      json: async function () {
+        return [{ sha256: "e".repeat(64), bytes: 7, tags: ["game=quake"] }];
+      }
+    };
+  };
+  openShaBtn.click();
+  await sleep(10);
+  delete globalThis.prompt;
+  globalThis.fetch = realFetch;
+  ok(openPrompts.length === 1, "open by sha256 asks in a dialog");
+  ok(App.state.pkg && App.state.pkg.sha256 === "e".repeat(64),
+     "open by sha256 loads the package from the dialog input");
 
   // multiple notes: list of strings
   var pkgWithNotes = JSON.stringify({

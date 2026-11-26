@@ -666,6 +666,22 @@
     return false;
   }
 
+  function askSha256(message) {
+    var v = null;
+    try {
+      if (typeof root.prompt === "function") {
+        v = root.prompt(message, "");
+      }
+    } catch (e) {
+      return undefined;
+    }
+    if (v === null) {
+      return undefined;
+    }
+    var m = /[a-f0-9]{64}/i.exec(String(v).trim());
+    return m ? m[0].toLowerCase() : null;
+  }
+
   async function openBySha256(sha256) {
     setStatus("Fetching metadata for " + sha256.slice(0, 12) + "...");
     try {
@@ -1094,14 +1110,19 @@
     }));
     secTags.appendChild(fetchRow);
     var copyRow = h("div", { class: "row" });
-    var copyInput = h("input", { type: "text", placeholder: "sha256 of another package" });
-    copyRow.appendChild(copyInput);
     copyRow.appendChild(h("button", {
       type: "button",
       text: "Copy tags from sha256",
       onclick: function () {
-        copyTagsFromSha(copyInput.value);
-        copyInput.value = "";
+        var sha = askSha256("Enter the sha256 of the package to copy the tags from:");
+        if (sha === undefined) {
+          return;
+        }
+        if (sha === null) {
+          setStatus("Enter a 64-hex sha256 to copy tags from.");
+          return;
+        }
+        copyTagsFromSha(sha);
       }
     }));
     secTags.appendChild(copyRow);
@@ -1754,13 +1775,15 @@
     var btnOpenSha = $("btn-open-sha");
     if (btnOpenSha) {
       btnOpenSha.addEventListener("click", function () {
-        var inp = $("inp-sha");
-        var m = inp ? /[a-f0-9]{64}/i.exec(inp.value.trim()) : null;
-        if (!m) {
+        var sha = askSha256("Enter the sha256 of the package to open:");
+        if (sha === undefined) {
+          return;
+        }
+        if (sha === null) {
           setStatus("Enter a 64-hex sha256 to open.");
           return;
         }
-        openBySha256(m[0].toLowerCase());
+        openBySha256(sha);
       });
     }
     var fileJson = $("file-json");
