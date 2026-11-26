@@ -23,7 +23,7 @@
     { key: "type", hint: "Type of the release.", example: "type=map", cardinality: "multiple" },
     { key: "theme", hint: "Theme(s) of the release, may appear multiple times.", example: "theme=base", cardinality: "multiple" },
     { key: "startmap", hint: "Map to start the release with.", example: "startmap=foo", cardinality: "multiple" },
-    { key: "release_date", hint: "Release date: YYYY, YYYY-MM or YYYY-MM-DD.", example: "release_date=1996-24-12", cardinality: "once" },
+    { key: "release_date", hint: "Release date: YYYY, YYYY-MM or YYYY-MM-DD.", example: "release_date=1996-12-24", cardinality: "once" },
     { key: "version", hint: "Version of the release.", example: "version=1.0", cardinality: "once" },
     { key: "commandline", hint: "Command line to run the release.", example: "commandline=-game foo", cardinality: "once" },
     { key: "link", hint: "Plain URL or markdown link [title](url).", example: "link=[Homepage](https://www.example.com/foo)", cardinality: "multiple" }
