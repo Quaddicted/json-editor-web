@@ -886,6 +886,14 @@ function sleep(ms) {
   ok(App.shaFromUrlHash() === null, "invalid sha ignored");
   ok(pushedUrls.length === 3 && pushedUrls[2] === "/",
      "URL cleared for invalid hash");
+  // without the History API the hash is still cleared, so a refresh keeps edits
+  delete globalThis.history;
+  globalThis.location = { hash: "#sha256=" + "e".repeat(64), pathname: "/", search: "" };
+  ok(App.shaFromUrlHash() === "e".repeat(64), "sha extracted without History API");
+  ok(globalThis.location.hash === "", "URL hash cleared without History API");
+  globalThis.history = {
+    pushState: function (st, title, url) { pushedUrls.push(url); }
+  };
   globalThis.location = { hash: "#sha256=" + "e".repeat(64), pathname: "/", search: "" };
   globalThis.fetch = async function () {
     return {

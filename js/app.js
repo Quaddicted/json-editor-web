@@ -649,6 +649,8 @@
       // clear URL, so that the user does not lose data if they edit and refresh/bookmark
       if (root.history && typeof root.history.pushState === "function") {
         root.history.pushState("", document.title, root.location.pathname + root.location.search);
+      } else if (root.location) {
+        root.location.hash = "";
       }
 
       return m ? m[1].toLowerCase() : null;
