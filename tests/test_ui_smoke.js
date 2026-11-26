@@ -718,13 +718,13 @@ function sleep(ms) {
      "API link opens in new tab with rel");
   ok(apiLink.attrs["href"] === "https://www.quaddicted.com/api/v1/?q=" +
      encodeURIComponent('+sha256:"' + "3f".repeat(32) + '"'), "API link href");
-  var ghLink = links.filter(function (l) { return l.textContent === "Open in quaddicted-data (GitHub)"; })[0];
-  ok(ghLink.attrs["href"] === "https://github.com/Quaddicted/quaddicted-data/blob/main/json/by-sha256/3f/" +
+  var ghLink = links.filter(function (l) { return l.textContent === "Open in quaddicted-data repo"; })[0];
+  ok(ghLink && ghLink.attrs["href"] === "https://github.com/Quaddicted/quaddicted-data/blob/main/json/by-sha256/3f/" +
      "3f".repeat(32) + ".json", "GitHub link href");
   var dbLink = links.filter(function (l) {
-    return l.textContent === "Open in the Quaddicted database (canonical)";
+    return l.textContent === "Open in the Quaddicted Database";
   })[0];
-  ok(dbLink.attrs["href"] === "https://www.quaddicted.com/db/v2/canonical/" + "3f".repeat(32),
+  ok(dbLink && dbLink.attrs["href"] === "https://www.quaddicted.com/db/canonical/" + "3f".repeat(32),
      "database canonical link href");
   // invalid sha: links disabled without href
   App.loadPackageFromText(JSON.stringify({ bytes: 1, sha256: "abc" }),
@@ -735,14 +735,25 @@ function sleep(ms) {
   ok(disabledLinks.length === 3 && !("href" in disabledLinks[0].attrs),
      "links disabled without href when sha256 invalid");
 
-  // URL hash parameter: #sha256=<sha> auto-loads metadata
-  globalThis.location = { hash: "" };
+  // URL hash parameter: #sha256=<sha> auto-loads metadata, then the URL is
+  // cleared via history.pushState so a refresh does not reload the remote data
+  var pushedUrls = [];
+  globalThis.history = {
+    pushState: function (st, title, url) { pushedUrls.push(url); }
+  };
+  globalThis.location = { hash: "", pathname: "/", search: "" };
   ok(App.shaFromUrlHash() === null, "no sha in empty hash");
-  globalThis.location = { hash: "#sha256=" + "e".repeat(64) };
+  ok(pushedUrls.length === 1 && pushedUrls[0] === "/",
+     "URL cleared for empty hash");
+  globalThis.location = { hash: "#sha256=" + "e".repeat(64), pathname: "/", search: "" };
   ok(App.shaFromUrlHash() === "e".repeat(64), "sha extracted from hash");
-  globalThis.location = { hash: "#sha256=abc" };
+  ok(pushedUrls.length === 2 && pushedUrls[1] === "/",
+     "URL cleared after extracting the sha");
+  globalThis.location = { hash: "#sha256=abc", pathname: "/", search: "" };
   ok(App.shaFromUrlHash() === null, "invalid sha ignored");
-  globalThis.location = { hash: "#sha256=" + "e".repeat(64) };
+  ok(pushedUrls.length === 3 && pushedUrls[2] === "/",
+     "URL cleared for invalid hash");
+  globalThis.location = { hash: "#sha256=" + "e".repeat(64), pathname: "/", search: "" };
   globalThis.fetch = async function () {
     return {
       ok: true,
@@ -754,8 +765,10 @@ function sleep(ms) {
   };
   await App.loadFromUrlHash();
   ok(App.state.pkg && App.state.pkg.sha256 === "e".repeat(64), "metadata auto-loaded from URL hash");
-  ok(globalThis.location.hash === "sha256=" + "e".repeat(64), "URL hash reflects loaded sha");
+  ok(pushedUrls.length === 4 && pushedUrls[3] === "/",
+     "URL hash cleared after loading metadata");
   delete globalThis.location;
+  delete globalThis.history;
 
   // CodeMirror 6 adapter behaviour (no fallback editor exists)
   App.loadPackageFromText(validPkg, { type: "paste", expectedSha256: null, filename: null });
