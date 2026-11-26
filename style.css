@@ -334,6 +334,19 @@ button:disabled,
   min-width: 8rem;
 }
 
+.tag-mark {
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.tag-mark-ok {
+  color: var(--q-ok);
+}
+
+.tag-mark-bad {
+  color: var(--q-error);
+}
+
 
 /* description box with the markdown preview aligned underneath */
 .desc-col {

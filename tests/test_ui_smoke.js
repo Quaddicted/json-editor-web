@@ -741,6 +741,19 @@ function sleep(ms) {
   ok(findAll(tagRowEl, function (c) {
     return c.attrs["class"] === "suggest-box";
   }).length === 0, "suggestion box hidden after picking");
+  // tag validation marks next to each tag: \u2713 valid, \u2717 invalid
+  var markSpan = findAll(tagRowEl, function (c) {
+    return typeof c.attrs["class"] === "string" && c.attrs["class"].indexOf("tag-mark ") === 0;
+  })[0];
+  ok(markSpan !== undefined, "each tag row shows a validation mark");
+  ok(markSpan.textContent === "\u2713" && markSpan.attrs["class"] === "tag-mark tag-mark-ok",
+     "valid tag shows a checkmark");
+  tagInput.value = "broken tag";
+  (tagInput.listeners.input || []).forEach(function (fn) { fn(); });
+  ok(markSpan.textContent === "\u2717" && markSpan.attrs["class"] === "tag-mark tag-mark-bad",
+     "invalid tag shows a red x");
+  tagInput.value = "game=quake";
+  (tagInput.listeners.input || []).forEach(function (fn) { fn(); });
   // no matches -> hidden
   tagInput.value = "zzz=";
   (tagInput.listeners.input || []).forEach(function (fn) { fn(); });
