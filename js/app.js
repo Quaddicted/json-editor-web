@@ -1255,8 +1255,10 @@
       for (var m = 0; m < mapKeys.length; m++) {
         (function (src) {
           var row = h("div", { class: "row mapping-row" });
-          row.appendChild(textInput(src, function (v) {
-            if (!v) {
+          var srcInput = h("input", { type: "text", value: src });
+          srcInput.addEventListener("change", function () {
+            var v = srcInput.value;
+            if (!v || v === src) {
               return;
             }
             var mapping = state.pkg.install.extractmapping;
@@ -1265,7 +1267,8 @@
             mapping[v] = target;
             renderForm();
             updateAll();
-          }));
+          });
+          row.appendChild(srcInput);
           row.appendChild(h("span", { text: " \u2192 " }));
           row.appendChild(textInput(install.extractmapping[src], function (v) {
             state.pkg.install.extractmapping[src] = v;

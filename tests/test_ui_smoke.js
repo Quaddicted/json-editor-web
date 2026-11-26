@@ -410,6 +410,28 @@ function sleep(ms) {
   ok(App.state.pkg.notes.length === 2 && App.state.pkg.notes[0] === "second note",
      "Remove button deletes the cleared note row");
 
+  // extractmapping: editing the source key keeps focus while typing
+  App.loadPackageFromText(JSON.stringify({
+    bytes: 10,
+    sha256: "b".repeat(64),
+    install: { extractmapping: { "/old/source": "/target" } }
+  }), { type: "paste", expectedSha256: null, filename: null });
+  var mapRows = findAll(registry["form-pane"], function (c) {
+    return c.attrs["class"] === "row mapping-row";
+  });
+  ok(mapRows.length === 1, "extractmapping row rendered");
+  var srcInputs = findAll(mapRows[0], function (c) {
+    return c.tagName === "input" && c.attrs["type"] === "text";
+  });
+  ok(srcInputs.length === 2 && srcInputs[0].value === "/old/source",
+     "mapping row has source and target inputs");
+  ok((srcInputs[0].listeners.input || []).length === 0,
+     "source input does not re-render on every keystroke");
+  srcInputs[0].value = "/new/source";
+  (srcInputs[0].listeners.change || []).forEach(function (fn) { fn(); });
+  ok(JSON.stringify(App.state.pkg.install.extractmapping) === JSON.stringify({ "/new/source": "/target" }),
+     "source key renamed when the change is committed");
+
   // newFromFile: API metadata check
   var fs2 = require("fs");
   var zipBytes = new Uint8Array(fs2.readFileSync(path.join(__dirname, "fixtures", "test.zip")));
