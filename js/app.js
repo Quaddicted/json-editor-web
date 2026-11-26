@@ -649,6 +649,8 @@
       // clear URL, so that the user does not lose data if they edit and refresh/bookmark
       if (root.history && typeof root.history.pushState === "function") {
         root.history.pushState("", document.title, root.location.pathname + root.location.search);
+      } else if (root.location) {
+        root.location.hash = "";
       }
 
       return m ? m[1].toLowerCase() : null;
@@ -666,7 +668,45 @@
     return false;
   }
 
+  function sizeWithUnits(bytes) {
+    var n = typeof bytes === "number" ? bytes : parseInt(bytes, 10);
+    if (!isFinite(n) || isNaN(n) || n < 1024) {
+      return "";
+    }
+    var units = [["GB", 1024 * 1024 * 1024], ["MB", 1024 * 1024], ["KB", 1024]];
+    for (var i = 0; i < units.length; i++) {
+      if (n >= units[i][1]) {
+        return " (" + (Math.round(n / units[i][1] * 10) / 10) + " " + units[i][0] + ")";
+      }
+    }
+    return "";
+  }
+
+  function pkgBytesText(bytes) {
+    if (bytes === undefined || bytes === null) {
+      return "\u2014";
+    }
+    return String(bytes) + sizeWithUnits(bytes);
+  }
+
+  function askSha256(message) {
+    var v = null;
+    try {
+      if (typeof root.prompt === "function") {
+        v = root.prompt(message, "");
+      }
+    } catch (e) {
+      return undefined;
+    }
+    if (v === null) {
+      return undefined;
+    }
+    var m = /[a-f0-9]{64}/i.exec(String(v).trim());
+    return m ? m[0].toLowerCase() : null;
+  }
+
   async function openBySha256(sha256) {
+    resetAll();
     setStatus("Fetching metadata for " + sha256.slice(0, 12) + "...");
     try {
       var doc = await fetchMetadata(sha256);
@@ -744,6 +784,7 @@
   }
 
   async function newFromFile(file) {
+    resetAll();
     setStatus("Hashing " + file.name + "...");
     var sha256;
     try {
@@ -819,6 +860,7 @@
   }
 
   async function openJsonFile(file) {
+    resetAll();
     var text = await file.text();
     loadPackageFromText(text, {
       type: "json",
@@ -977,7 +1019,7 @@
     bytesRow.appendChild(h("label", { text: "bytes" }));
     bytesRow.appendChild(h("code", {
       class: "readonly-value",
-      text: pkg.bytes === undefined || pkg.bytes === null ? "\u2014" : String(pkg.bytes)
+      text: pkgBytesText(pkg.bytes)
     }));
     secPkg.appendChild(bytesRow);
     var shaRow = h("div", { class: "row" });
@@ -1094,14 +1136,19 @@
     }));
     secTags.appendChild(fetchRow);
     var copyRow = h("div", { class: "row" });
-    var copyInput = h("input", { type: "text", placeholder: "sha256 of another package" });
-    copyRow.appendChild(copyInput);
     copyRow.appendChild(h("button", {
       type: "button",
       text: "Copy tags from sha256",
       onclick: function () {
-        copyTagsFromSha(copyInput.value);
-        copyInput.value = "";
+        var sha = askSha256("Enter the sha256 of the package to copy the tags from:");
+        if (sha === undefined) {
+          return;
+        }
+        if (sha === null) {
+          setStatus("Enter a 64-hex sha256 to copy tags from.");
+          return;
+        }
+        copyTagsFromSha(sha);
       }
     }));
     secTags.appendChild(copyRow);
@@ -1184,24 +1231,8 @@
       renderFilesTree(filesBox, buildFilesTree(pkg.files));
       secFiles.appendChild(filesBox);
     } else {
-      secFiles.appendChild(h("div", { class: "hint", text: "No files map. Scan an uploaded archive to add one." }));
+      secFiles.appendChild(h("div", { class: "hint", text: "No files map. Add one via the raw JSON if needed." }));
     }
-    var scanRow = h("div", { class: "row" });
-    var scanFile = h("input", { type: "file", id: "file-scan" });
-    scanFile.addEventListener("change", function () {
-      if (scanFile.files && scanFile.files[0]) {
-        scanUploadedArchive(scanFile.files[0]);
-      }
-    });
-    scanRow.appendChild(scanFile);
-    scanRow.appendChild(h("button", {
-      type: "button",
-      text: "Scan uploaded archive",
-      onclick: function () {
-        scanFile.click();
-      }
-    }));
-    secFiles.appendChild(scanRow);
     pane.appendChild(secFiles);
 
     // Install ------------------------------------------------------------
@@ -1213,8 +1244,10 @@
       for (var m = 0; m < mapKeys.length; m++) {
         (function (src) {
           var row = h("div", { class: "row mapping-row" });
-          row.appendChild(textInput(src, function (v) {
-            if (!v) {
+          var srcInput = h("input", { type: "text", value: src });
+          srcInput.addEventListener("change", function () {
+            var v = srcInput.value;
+            if (!v || v === src) {
               return;
             }
             var mapping = state.pkg.install.extractmapping;
@@ -1223,7 +1256,8 @@
             mapping[v] = target;
             renderForm();
             updateAll();
-          }));
+          });
+          row.appendChild(srcInput);
           row.appendChild(h("span", { text: " \u2192 " }));
           row.appendChild(textInput(install.extractmapping[src], function (v) {
             state.pkg.install.extractmapping[src] = v;
@@ -1526,18 +1560,71 @@
     return root;
   }
 
-  function filesTreeMeta(entry) {
-    var parts = [];
-    if (entry && entry.bytes !== undefined && entry.bytes !== null) {
-      parts.push(entry.bytes + " B");
+  function humanBytes(n) {
+    if (n === undefined || n === null) {
+      return "";
     }
-    if (entry && entry.sha256) {
+    var t = typeof n === "number" ? n : parseInt(n, 10);
+    if (isNaN(t) || !isFinite(t)) {
+      return String(n);
+    }
+    if (t < 1024) {
+      return t + " B";
+    }
+    var units = [["GB", 1024 * 1024 * 1024], ["MB", 1024 * 1024], ["KB", 1024]];
+    for (var i = 0; i < units.length; i++) {
+      if (t >= units[i][1]) {
+        return (Math.round(t / units[i][1] * 10) / 10) + " " + units[i][0];
+      }
+    }
+    return t + " B";
+  }
+
+  function shortTimestamp(ts) {
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) {
+      return ts;
+    }
+    return d.toISOString().slice(0, 19).replace("T", " ");
+  }
+
+  function dirSize(node) {
+    var total = 0;
+    for (var f = 0; f < node.files.length; f++) {
+      var b = node.files[f].entry && node.files[f].entry.bytes;
+      var n = typeof b === "number" ? b : parseInt(b, 10);
+      if (!isNaN(n) && isFinite(n)) {
+        total += n;
+      }
+    }
+    var dirNames = Object.keys(node.dirs);
+    for (var d = 0; d < dirNames.length; d++) {
+      total += dirSize(node.dirs[dirNames[d]]);
+    }
+    return total;
+  }
+
+  function filesTreeMetaRow(entry, isDir, node) {
+    var parts = [];
+    if (isDir) {
+      parts.push(humanBytes(dirSize(node)));
+    } else if (entry && entry.bytes !== undefined && entry.bytes !== null) {
+      parts.push(humanBytes(entry.bytes));
+    }
+    if (!isDir && entry && entry.sha256) {
       parts.push(entry.sha256.slice(0, 12) + "\u2026");
     }
     if (entry && entry.timestamp) {
-      parts.push(entry.timestamp);
+      parts.push(shortTimestamp(entry.timestamp));
     }
-    return parts.join(" \u00b7 ");
+    if (!parts.length) {
+      return null;
+    }
+    var attrs = { class: "tree-meta-row", text: parts.join(" \u00b7 ") };
+    if (!isDir && entry && entry.sha256) {
+      attrs.title = entry.sha256;
+    }
+    return h("div", attrs);
   }
 
   function renderFilesTree(container, node) {
@@ -1564,9 +1651,9 @@
         row.appendChild(toggle);
         row.appendChild(h("span", { class: "tree-name dir", text: dirName + "/" }));
         container.appendChild(row);
-        var meta = filesTreeMeta(child.entry);
+        var meta = filesTreeMetaRow(child.entry, true, child);
         if (meta) {
-          container.appendChild(h("div", { class: "tree-meta-row", text: meta }));
+          container.appendChild(meta);
         }
         if (!isCollapsed) {
           var childBox = h("div", { class: "files-tree nested" });
@@ -1581,9 +1668,9 @@
         row.appendChild(h("span", { class: "tree-toggle-spacer", text: "\u00b7" }));
         row.appendChild(h("span", { class: "tree-name", text: leaf.name }));
         container.appendChild(row);
-        var leafMeta = filesTreeMeta(leaf.entry);
+        var leafMeta = filesTreeMetaRow(leaf.entry, false, null);
         if (leafMeta) {
-          container.appendChild(h("div", { class: "tree-meta-row", text: leafMeta }));
+          container.appendChild(leafMeta);
         }
         if (leaf.subtree) {
           var subBox = h("div", { class: "files-tree nested archive" });
@@ -1592,31 +1679,6 @@
         }
       })(node.files[f]);
     }
-  }
-
-  async function scanUploadedArchive(file) {
-    setStatus("Scanning " + file.name + "...");
-    var bytes = new Uint8Array(await file.arrayBuffer());
-    var scan = await Scan.scanArchive(bytes);
-    if (!scan.files) {
-      var looksLikeArchive = bytes.length >= 4 && bytes[0] === 0x50 &&
-        ((bytes[1] === 0x4b && (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07)) ||
-         (bytes[1] === 0x41 && bytes[2] === 0x43 && bytes[3] === 0x4b));
-      if (looksLikeArchive) {
-        setStatus("Archive not scanned: " + file.name + " looks like an archive but is corrupt (" +
-          (scan.errors && scan.errors[""] ? scan.errors[""] : "unknown error") + "). " +
-          "The existing files map was left unchanged.");
-      } else {
-        setStatus("Not a zip or pak archive: " + file.name + ". The existing files map was left unchanged.");
-      }
-      return;
-    }
-    state.scanErrors = scan.errors || {};
-    state.pkg.files = scan.files;
-    renderForm();
-    updateAll();
-    setStatus("Scanned " + file.name + " (" + scan.kind + ", " +
-      Object.keys(scan.files).length + " entries).");
   }
 
   // --------------------------------------------------------------- export
@@ -1741,6 +1803,7 @@
         if (fileNew.files && fileNew.files[0]) {
           newFromFile(fileNew.files[0]);
         }
+        fileNew.value = "";
       });
     }
     var btnNew = $("btn-new");
@@ -1754,13 +1817,15 @@
     var btnOpenSha = $("btn-open-sha");
     if (btnOpenSha) {
       btnOpenSha.addEventListener("click", function () {
-        var inp = $("inp-sha");
-        var m = inp ? /[a-f0-9]{64}/i.exec(inp.value.trim()) : null;
-        if (!m) {
+        var sha = askSha256("Enter the sha256 of the package to open:");
+        if (sha === undefined) {
+          return;
+        }
+        if (sha === null) {
           setStatus("Enter a 64-hex sha256 to open.");
           return;
         }
-        openBySha256(m[0].toLowerCase());
+        openBySha256(sha);
       });
     }
     var fileJson = $("file-json");
@@ -1769,6 +1834,7 @@
         if (fileJson.files && fileJson.files[0]) {
           openJsonFile(fileJson.files[0]);
         }
+        fileJson.value = "";
       });
     }
     var btnOpenJson = $("btn-open-json");

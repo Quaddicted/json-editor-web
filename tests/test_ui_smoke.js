@@ -170,6 +170,35 @@ function sleep(ms) {
   var metaSpans = findAll(formPane, function (c) { return c.attrs["class"] === "tree-meta-row"; });
   ok(metaSpans.some(function (s) { return s.textContent.indexOf("3 B") !== -1; }), "file meta shows bytes");
   ok(metaSpans.some(function (s) { return s.textContent.indexOf("cccccccccccc\u2026") !== -1; }), "file meta shows sha256 prefix");
+  ok(metaSpans.some(function (s) { return s.attrs["title"] === "c".repeat(64); }),
+     "file meta full sha256 shown on hover");
+  ok(metaSpans.some(function (s) { return s.textContent.indexOf("2021-07-12 17:54:58") !== -1; }),
+     "file meta timestamp formatted as YYYY-MM-DD HH:MM:SS");
+  ok(findAll(formPane, function (c) {
+    return c.tagName === "button" && c.textContent === "Scan uploaded archive";
+  }).length === 0,
+     "scan uploaded archive option removed");
+  // dir meta: summed inner sizes, no sha256
+  App.loadPackageFromText(JSON.stringify({
+    bytes: 100,
+    sha256: "a".repeat(64),
+    files: {
+      "sub/one.txt": { bytes: 1024, sha256: "b".repeat(64) },
+      "sub/two.txt": { bytes: 512, sha256: "c".repeat(64) },
+      "big.bin": { bytes: 3145728, sha256: "d".repeat(64) }
+    }
+  }), { type: "paste", expectedSha256: null, filename: null });
+  var dirMetaSpans = findAll(registry["form-pane"], function (c) {
+    return c.attrs["class"] === "tree-meta-row";
+  });
+  ok(dirMetaSpans.some(function (s) { return s.textContent.indexOf("1.5 KB") !== -1; }),
+     "directory meta shows the summed inner file sizes");
+  ok(dirMetaSpans.some(function (s) { return s.textContent.indexOf("3 MB") !== -1; }),
+     "file meta shows MB size");
+  var dirMeta = dirMetaSpans.filter(function (s) { return s.textContent.indexOf("1.5 KB") !== -1; })[0];
+  ok(dirMeta.textContent.indexOf("bbbb") === -1 && !("title" in dirMeta.attrs),
+     "directory meta shows no sha256");
+  App.loadPackageFromText(pkgWithFiles, { type: "paste", expectedSha256: null, filename: null });
   var fileInputs = findAll(formPane, function (c) {
     return c.tagName === "input" && (c.attrs["type"] === "text" || c.attrs["type"] === "number");
   });
@@ -218,6 +247,31 @@ function sleep(ms) {
   ok(readOnlyCodes.length === 2, "bytes and sha256 rendered as read-only code");
   ok(readOnlyCodes.some(function (c) { return c.textContent === "42"; }),
      "bytes shown read-only");
+  App.loadPackageFromText(JSON.stringify({
+    bytes: 1572864,
+    sha256: "b".repeat(64)
+  }), { type: "paste", expectedSha256: null, filename: null });
+  var sizedCodes = findAll(registry["form-pane"], function (c) {
+    return c.tagName === "code" && c.attrs["class"] === "readonly-value";
+  });
+  ok(sizedCodes.some(function (c) { return c.textContent === "1572864 (1.5 MB)"; }),
+     "package panel bytes shows MB size");
+  App.loadPackageFromText(JSON.stringify({
+    bytes: 2048,
+    sha256: "b".repeat(64),
+    files: { "a.txt": { bytes: 5368709120, sha256: "c".repeat(64) } }
+  }), { type: "paste", expectedSha256: null, filename: null });
+  var sizedCodes2 = findAll(registry["form-pane"], function (c) {
+    return c.tagName === "code" && c.attrs["class"] === "readonly-value";
+  });
+  ok(sizedCodes2.some(function (c) { return c.textContent === "2048 (2 KB)"; }),
+     "package panel bytes shows KB size");
+  ok(findAll(registry["form-pane"], function (c) {
+    return c.attrs["class"] === "tree-meta-row" &&
+      c.textContent.indexOf("5 GB") !== -1;
+  }).length === 1,
+     "file meta shows GB size");
+  App.loadPackageFromText(validPkg, { type: "paste", expectedSha256: null, filename: null });
   ok(readOnlyCodes.some(function (c) { return c.textContent === "a".repeat(64); }),
      "sha256 shown read-only");
   var jsonVersionLabels = findAll(registry["form-pane"], function (c) {
@@ -308,6 +362,50 @@ function sleep(ms) {
     return c.tagName === "button" && c.textContent === "Copy tags from sha256";
   })[0];
   ok(copyBtn !== undefined, "copy tags button rendered in Tags section");
+  ok(findAll(registry["form-pane"], function (c) {
+    return c.tagName === "input" && c.attrs["placeholder"] === "sha256 of another package";
+  }).length === 0,
+     "no permanent sha256 input next to the copy tags button");
+  ok(registry["inp-sha"] === undefined, "toolbar sha256 text input removed");
+  var prompted = [];
+  globalThis.prompt = function (msg) { prompted.push(msg); return "f".repeat(64); };
+  var copyDialogFetch = async function () {
+    return {
+      ok: true,
+      status: 200,
+      json: async function () {
+        return [{ sha256: "f".repeat(64), bytes: 9, tags: ["game=quake", "theme=base"] }];
+      }
+    };
+  };
+  globalThis.fetch = copyDialogFetch;
+  copyBtn.click();
+  await sleep(10);
+  delete globalThis.prompt;
+  globalThis.fetch = realFetch;
+  ok(prompted.length === 1 && prompted[0].indexOf("sha256") !== -1,
+     "copy tags asks for the sha256 in a dialog");
+  ok(JSON.stringify(App.state.pkg.tags) === JSON.stringify(["game=quake", "title=Original", "theme=base"]),
+     "copy tags uses the sha256 entered in the dialog");
+  var openShaBtn = registry["btn-open-sha"];
+  var openPrompts = [];
+  globalThis.prompt = function (msg) { openPrompts.push(msg); return "e".repeat(64); };
+  globalThis.fetch = async function () {
+    return {
+      ok: true,
+      status: 200,
+      json: async function () {
+        return [{ sha256: "e".repeat(64), bytes: 7, tags: ["game=quake"] }];
+      }
+    };
+  };
+  openShaBtn.click();
+  await sleep(10);
+  delete globalThis.prompt;
+  globalThis.fetch = realFetch;
+  ok(openPrompts.length === 1, "open by sha256 asks in a dialog");
+  ok(App.state.pkg && App.state.pkg.sha256 === "e".repeat(64),
+     "open by sha256 loads the package from the dialog input");
 
   // multiple notes: list of strings
   var pkgWithNotes = JSON.stringify({
@@ -340,6 +438,28 @@ function sleep(ms) {
   removeBtns[0].click();
   ok(App.state.pkg.notes.length === 2 && App.state.pkg.notes[0] === "second note",
      "Remove button deletes the cleared note row");
+
+  // extractmapping: editing the source key keeps focus while typing
+  App.loadPackageFromText(JSON.stringify({
+    bytes: 10,
+    sha256: "b".repeat(64),
+    install: { extractmapping: { "/old/source": "/target" } }
+  }), { type: "paste", expectedSha256: null, filename: null });
+  var mapRows = findAll(registry["form-pane"], function (c) {
+    return c.attrs["class"] === "row mapping-row";
+  });
+  ok(mapRows.length === 1, "extractmapping row rendered");
+  var srcInputs = findAll(mapRows[0], function (c) {
+    return c.tagName === "input" && c.attrs["type"] === "text";
+  });
+  ok(srcInputs.length === 2 && srcInputs[0].value === "/old/source",
+     "mapping row has source and target inputs");
+  ok((srcInputs[0].listeners.input || []).length === 0,
+     "source input does not re-render on every keystroke");
+  srcInputs[0].value = "/new/source";
+  (srcInputs[0].listeners.change || []).forEach(function (fn) { fn(); });
+  ok(JSON.stringify(App.state.pkg.install.extractmapping) === JSON.stringify({ "/new/source": "/target" }),
+     "source key renamed when the change is committed");
 
   // newFromFile: API metadata check
   var fs2 = require("fs");
@@ -402,6 +522,19 @@ function sleep(ms) {
   globalThis.fetch = realFetch4;
   ok(App.state.pkg !== null && App.state.pkg.bytes === 5, "non-archive file loads as new package");
   ok(!("files" in App.state.pkg), "non-archive file has no files map");
+  ok(registry["form-pane"].children.length > 0, "form populated before a new load");
+  var unreadableFile = {
+    name: "unreadable.zip",
+    size: 10,
+    slice: function () {
+      return { arrayBuffer: async function () { throw new Error("boom"); } };
+    },
+    arrayBuffer: async function () { throw new Error("boom"); }
+  };
+  await App.newFromFile(unreadableFile);
+  ok(App.state.pkg === null, "old data removed when a new file load starts");
+  ok(registry["form-pane"].children.length === 0,
+     "form cleared before the new load begins");
 
   // raw JSON updates when a different package is loaded
   App.loadPackageFromText(validPkg, { type: "paste", expectedSha256: null, filename: null });
@@ -753,6 +886,14 @@ function sleep(ms) {
   ok(App.shaFromUrlHash() === null, "invalid sha ignored");
   ok(pushedUrls.length === 3 && pushedUrls[2] === "/",
      "URL cleared for invalid hash");
+  // without the History API the hash is still cleared, so a refresh keeps edits
+  delete globalThis.history;
+  globalThis.location = { hash: "#sha256=" + "e".repeat(64), pathname: "/", search: "" };
+  ok(App.shaFromUrlHash() === "e".repeat(64), "sha extracted without History API");
+  ok(globalThis.location.hash === "", "URL hash cleared without History API");
+  globalThis.history = {
+    pushState: function (st, title, url) { pushedUrls.push(url); }
+  };
   globalThis.location = { hash: "#sha256=" + "e".repeat(64), pathname: "/", search: "" };
   globalThis.fetch = async function () {
     return {
