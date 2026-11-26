@@ -647,7 +647,9 @@
       var m = /(?:^#|&)sha256=([a-f0-9]{64})/i.exec(hash);
 
       // clear URL, so that the user does not lose data if they edit and refresh/bookmark
-      history.pushState("", document.title, root.location.pathname + root.location.search);
+      if (root.history && typeof root.history.pushState === "function") {
+        root.history.pushState("", document.title, root.location.pathname + root.location.search);
+      }
 
       return m ? m[1].toLowerCase() : null;
     } catch (e) {
