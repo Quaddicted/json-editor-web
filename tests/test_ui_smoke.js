@@ -170,6 +170,35 @@ function sleep(ms) {
   var metaSpans = findAll(formPane, function (c) { return c.attrs["class"] === "tree-meta-row"; });
   ok(metaSpans.some(function (s) { return s.textContent.indexOf("3 B") !== -1; }), "file meta shows bytes");
   ok(metaSpans.some(function (s) { return s.textContent.indexOf("cccccccccccc\u2026") !== -1; }), "file meta shows sha256 prefix");
+  ok(metaSpans.some(function (s) { return s.attrs["title"] === "c".repeat(64); }),
+     "file meta full sha256 shown on hover");
+  ok(metaSpans.some(function (s) { return s.textContent.indexOf("2021-07-12 17:54:58") !== -1; }),
+     "file meta timestamp formatted as YYYY-MM-DD HH:MM:SS");
+  ok(findAll(formPane, function (c) {
+    return c.tagName === "button" && c.textContent === "Scan uploaded archive";
+  }).length === 0,
+     "scan uploaded archive option removed");
+  // dir meta: summed inner sizes, no sha256
+  App.loadPackageFromText(JSON.stringify({
+    bytes: 100,
+    sha256: "a".repeat(64),
+    files: {
+      "sub/one.txt": { bytes: 1024, sha256: "b".repeat(64) },
+      "sub/two.txt": { bytes: 512, sha256: "c".repeat(64) },
+      "big.bin": { bytes: 3145728, sha256: "d".repeat(64) }
+    }
+  }), { type: "paste", expectedSha256: null, filename: null });
+  var dirMetaSpans = findAll(registry["form-pane"], function (c) {
+    return c.attrs["class"] === "tree-meta-row";
+  });
+  ok(dirMetaSpans.some(function (s) { return s.textContent.indexOf("1.5 KB") !== -1; }),
+     "directory meta shows the summed inner file sizes");
+  ok(dirMetaSpans.some(function (s) { return s.textContent.indexOf("3 MB") !== -1; }),
+     "file meta shows MB size");
+  var dirMeta = dirMetaSpans.filter(function (s) { return s.textContent.indexOf("1.5 KB") !== -1; })[0];
+  ok(dirMeta.textContent.indexOf("bbbb") === -1 && !("title" in dirMeta.attrs),
+     "directory meta shows no sha256");
+  App.loadPackageFromText(pkgWithFiles, { type: "paste", expectedSha256: null, filename: null });
   var fileInputs = findAll(formPane, function (c) {
     return c.tagName === "input" && (c.attrs["type"] === "text" || c.attrs["type"] === "number");
   });
@@ -239,7 +268,7 @@ function sleep(ms) {
      "package panel bytes shows KB size");
   ok(findAll(registry["form-pane"], function (c) {
     return c.attrs["class"] === "tree-meta-row" &&
-      c.textContent.indexOf("5368709120 B (5 GB)") !== -1;
+      c.textContent.indexOf("5 GB") !== -1;
   }).length === 1,
      "file meta shows GB size");
   App.loadPackageFromText(validPkg, { type: "paste", expectedSha256: null, filename: null });

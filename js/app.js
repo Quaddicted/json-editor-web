@@ -1229,24 +1229,8 @@
       renderFilesTree(filesBox, buildFilesTree(pkg.files));
       secFiles.appendChild(filesBox);
     } else {
-      secFiles.appendChild(h("div", { class: "hint", text: "No files map. Scan an uploaded archive to add one." }));
+      secFiles.appendChild(h("div", { class: "hint", text: "No files map. Add one via the raw JSON if needed." }));
     }
-    var scanRow = h("div", { class: "row" });
-    var scanFile = h("input", { type: "file", id: "file-scan" });
-    scanFile.addEventListener("change", function () {
-      if (scanFile.files && scanFile.files[0]) {
-        scanUploadedArchive(scanFile.files[0]);
-      }
-    });
-    scanRow.appendChild(scanFile);
-    scanRow.appendChild(h("button", {
-      type: "button",
-      text: "Scan uploaded archive",
-      onclick: function () {
-        scanFile.click();
-      }
-    }));
-    secFiles.appendChild(scanRow);
     pane.appendChild(secFiles);
 
     // Install ------------------------------------------------------------
@@ -1574,18 +1558,71 @@
     return root;
   }
 
-  function filesTreeMeta(entry) {
-    var parts = [];
-    if (entry && entry.bytes !== undefined && entry.bytes !== null) {
-      parts.push(entry.bytes + " B" + sizeWithUnits(entry.bytes));
+  function humanBytes(n) {
+    if (n === undefined || n === null) {
+      return "";
     }
-    if (entry && entry.sha256) {
+    var t = typeof n === "number" ? n : parseInt(n, 10);
+    if (isNaN(t) || !isFinite(t)) {
+      return String(n);
+    }
+    if (t < 1024) {
+      return t + " B";
+    }
+    var units = [["GB", 1024 * 1024 * 1024], ["MB", 1024 * 1024], ["KB", 1024]];
+    for (var i = 0; i < units.length; i++) {
+      if (t >= units[i][1]) {
+        return (Math.round(t / units[i][1] * 10) / 10) + " " + units[i][0];
+      }
+    }
+    return t + " B";
+  }
+
+  function shortTimestamp(ts) {
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) {
+      return ts;
+    }
+    return d.toISOString().slice(0, 19).replace("T", " ");
+  }
+
+  function dirSize(node) {
+    var total = 0;
+    for (var f = 0; f < node.files.length; f++) {
+      var b = node.files[f].entry && node.files[f].entry.bytes;
+      var n = typeof b === "number" ? b : parseInt(b, 10);
+      if (!isNaN(n) && isFinite(n)) {
+        total += n;
+      }
+    }
+    var dirNames = Object.keys(node.dirs);
+    for (var d = 0; d < dirNames.length; d++) {
+      total += dirSize(node.dirs[dirNames[d]]);
+    }
+    return total;
+  }
+
+  function filesTreeMetaRow(entry, isDir, node) {
+    var parts = [];
+    if (isDir) {
+      parts.push(humanBytes(dirSize(node)));
+    } else if (entry && entry.bytes !== undefined && entry.bytes !== null) {
+      parts.push(humanBytes(entry.bytes));
+    }
+    if (!isDir && entry && entry.sha256) {
       parts.push(entry.sha256.slice(0, 12) + "\u2026");
     }
     if (entry && entry.timestamp) {
-      parts.push(entry.timestamp);
+      parts.push(shortTimestamp(entry.timestamp));
     }
-    return parts.join(" \u00b7 ");
+    if (!parts.length) {
+      return null;
+    }
+    var attrs = { class: "tree-meta-row", text: parts.join(" \u00b7 ") };
+    if (!isDir && entry && entry.sha256) {
+      attrs.title = entry.sha256;
+    }
+    return h("div", attrs);
   }
 
   function renderFilesTree(container, node) {
@@ -1612,9 +1649,9 @@
         row.appendChild(toggle);
         row.appendChild(h("span", { class: "tree-name dir", text: dirName + "/" }));
         container.appendChild(row);
-        var meta = filesTreeMeta(child.entry);
+        var meta = filesTreeMetaRow(child.entry, true, child);
         if (meta) {
-          container.appendChild(h("div", { class: "tree-meta-row", text: meta }));
+          container.appendChild(meta);
         }
         if (!isCollapsed) {
           var childBox = h("div", { class: "files-tree nested" });
@@ -1629,9 +1666,9 @@
         row.appendChild(h("span", { class: "tree-toggle-spacer", text: "\u00b7" }));
         row.appendChild(h("span", { class: "tree-name", text: leaf.name }));
         container.appendChild(row);
-        var leafMeta = filesTreeMeta(leaf.entry);
+        var leafMeta = filesTreeMetaRow(leaf.entry, false, null);
         if (leafMeta) {
-          container.appendChild(h("div", { class: "tree-meta-row", text: leafMeta }));
+          container.appendChild(leafMeta);
         }
         if (leaf.subtree) {
           var subBox = h("div", { class: "files-tree nested archive" });
@@ -1640,31 +1677,6 @@
         }
       })(node.files[f]);
     }
-  }
-
-  async function scanUploadedArchive(file) {
-    setStatus("Scanning " + file.name + "...");
-    var bytes = new Uint8Array(await file.arrayBuffer());
-    var scan = await Scan.scanArchive(bytes);
-    if (!scan.files) {
-      var looksLikeArchive = bytes.length >= 4 && bytes[0] === 0x50 &&
-        ((bytes[1] === 0x4b && (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07)) ||
-         (bytes[1] === 0x41 && bytes[2] === 0x43 && bytes[3] === 0x4b));
-      if (looksLikeArchive) {
-        setStatus("Archive not scanned: " + file.name + " looks like an archive but is corrupt (" +
-          (scan.errors && scan.errors[""] ? scan.errors[""] : "unknown error") + "). " +
-          "The existing files map was left unchanged.");
-      } else {
-        setStatus("Not a zip or pak archive: " + file.name + ". The existing files map was left unchanged.");
-      }
-      return;
-    }
-    state.scanErrors = scan.errors || {};
-    state.pkg.files = scan.files;
-    renderForm();
-    updateAll();
-    setStatus("Scanned " + file.name + " (" + scan.kind + ", " +
-      Object.keys(scan.files).length + " entries).");
   }
 
   // --------------------------------------------------------------- export
