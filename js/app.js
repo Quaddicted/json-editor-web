@@ -1059,8 +1059,9 @@
     secPkg.appendChild(linksRow);
     var descRow = h("div", { class: "row" });
     descRow.appendChild(h("label", { text: "description" }));
+    var descCol = h("div", { class: "desc-col" });
     var descPreview = h("div", { class: "md-preview" });
-    descRow.appendChild(textArea(pkg.description, function (v) {
+    descCol.appendChild(textArea(pkg.description, function (v) {
       setPkg("description", v || null);
       if (previewTimer) {
         clearTimeout(previewTimer);
@@ -1070,9 +1071,10 @@
         renderMarkdown(descPreview, v);
       }, 200);
     }));
+    descCol.appendChild(h("div", { class: "hint", text: "Markdown preview:" }));
+    descCol.appendChild(descPreview);
+    descRow.appendChild(descCol);
     secPkg.appendChild(descRow);
-    secPkg.appendChild(h("div", { class: "hint", text: "Markdown preview:" }));
-    secPkg.appendChild(descPreview);
     renderMarkdown(descPreview, pkg.description);
     pane.appendChild(secPkg);
 
@@ -1453,6 +1455,7 @@
     var row = h("div", { class: "tag-row" });
     var input = h("input", { type: "text", value: String(tagString) });
     var hint = h("div", { class: "tag-hint" });
+    var mark = h("span", { class: "tag-mark" });
     var suggestBox = h("div", { class: "suggest-box hidden" });
     function hideSuggestions() {
       clear(suggestBox);
@@ -1460,8 +1463,11 @@
     }
     function refreshHint() {
       clear(hint);
+      var valid = false;
       try {
         var parsed = Validate.parseTag(input.value);
+        var validator = Validate.KEY_VALIDATORS[parsed.key];
+        valid = validator ? validator(parsed.value) : true;
         var info = Tagdata.infoFor(parsed.key);
         if (info) {
           hint.appendChild(document.createTextNode(info.hint));
@@ -1471,6 +1477,11 @@
       } catch (e) {
         hint.appendChild(document.createTextNode(e.message));
       }
+      mark.textContent = valid ? "\u2713" : "\u2717";
+      mark.setAttribute("class", "tag-mark " + (valid ? "tag-mark-ok" : "tag-mark-bad"));
+      mark.setAttribute("title", valid
+        ? "Tag passes the validation checks."
+        : "Tag does not pass the validation checks.");
     }
     input.addEventListener("input", function () {
       if (Array.isArray(state.pkg.tags)) {
@@ -1514,6 +1525,7 @@
       }
     }));
     inputRow.appendChild(input);
+    inputRow.appendChild(mark);
     row.appendChild(inputRow);
     row.appendChild(hint);
     row.appendChild(suggestBox);
